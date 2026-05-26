@@ -1,14 +1,14 @@
-# AWS S3 Browser 🪣
+# S3 Scout 🪣
 
 <div align="center">
 
-**A beautiful, modern desktop application for browsing and managing your AWS S3 buckets**
+**A beautiful, modern, and open-source desktop application for browsing and managing your AWS S3 buckets and CloudFront distributions.**
 
 [![Flutter](https://img.shields.io/badge/Flutter-3.5.3-02569B?logo=flutter)](https://flutter.dev)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-[Features](#features) • [Installation](#installation) • [Usage](#usage) • [Contributing](#contributing) • [Support](#support)
+[Features](#features) • [Installation](#installation) • [Security](#-security) • [Support](#-support)
 
 </div>
 
@@ -16,20 +16,27 @@
 
 ## ✨ Features
 
-- 🎨 **Beautiful UI** - Clean, modern interface built with Flutter
-- 🔐 **Secure Credentials** - Store multiple AWS profiles with encrypted credential storage
-- 📁 **Bucket Management** - Browse all your S3 buckets in one place
-- 🗂️ **File Navigation** - Navigate through folders with breadcrumb navigation
-- ⬆️ **Upload Files** - Easy file uploads with drag-and-drop support
-- ⬇️ **Download Objects** - Download files from your S3 buckets
-- 🔄 **Real-time Updates** - Automatic refresh and real-time bucket listing
-- 💻 **Cross-platform** - Works on macOS, Windows, and Linux
-- 🌐 **Multi-region Support** - Connect to any AWS region
-- 👤 **Profile Management** - Switch between multiple AWS accounts seamlessly
+- 🎨 **Modern UI** - Clean, high-performance interface built with Flutter.
+- 🔐 **Local & Secure** - Your AWS keys are stored locally in your system's secure keychain (macOS Keychain, Windows Credential Manager). They never leave your machine.
+- 📁 **Bucket Management** - Browse, search, and manage all your S3 buckets.
+- ⚡ **CloudFront Integration** - Manage your CloudFront distributions and create invalidations directly from the app.
+- 🛠️ **Header Automation** - Define "Default HTTP Headers" rules based on file extensions (e.g., `*.js`, `*.css`) to automatically apply metadata like `Cache-Control` or `Content-Disposition` during uploads.
+- 🗂️ **File Navigation** - Intuitive breadcrumb navigation and folder browsing.
+- ⬆️ **Fast Uploads** - Concurrent file uploads with progress tracking.
+- ⬇️ **Downloads** - Download objects to your local machine with ease.
+- 🔄 **Profile Switching** - Seamlessly switch between multiple AWS accounts and regions.
+- 💻 **Cross-platform** - Native performance on macOS, Windows, and Linux.
 
 ## 📸 Screenshots
 
-> _Screenshots coming soon!_
+> _Coming soon for Product Hunt launch!_
+
+## 🔒 Security
+
+Security is our top priority. S3 Scout is designed to be a "Zero-Knowledge" client:
+- **Local Storage:** Credentials are stored using `flutter_secure_storage`, which utilizes platform-native encryption (Biometrics/PIN-backed where available).
+- **Direct Communication:** The app communicates directly with AWS APIs. No intermediate servers or analytics trackers are used.
+- **Open Source:** Because it's open-source, the security community can audit every line of code to ensure your keys are handled safely.
 
 ## 🚀 Installation
 
@@ -37,14 +44,14 @@
 
 - [Flutter SDK](https://flutter.dev/docs/get-started/install) (3.5.3 or higher)
 - macOS, Windows, or Linux
-- AWS Account with S3 access
+- AWS Account with S3/CloudFront access
 
 ### Build from Source
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/aws_s3_browser.git
-   cd aws_s3_browser
+   git clone https://github.com/yourusername/s3_scout.git
+   cd s3_scout
    ```
 
 2. **Install dependencies**
@@ -54,115 +61,44 @@
 
 3. **Run the application**
    ```bash
-   # For macOS
+   # macOS
    flutter run -d macos
    
-   # For Windows
+   # Windows
    flutter run -d windows
-   
-   # For Linux
-   flutter run -d linux
    ```
-
-4. **Build for production**
-   ```bash
-   # For macOS
-   flutter build macos
-   
-   # For Windows
-   flutter build windows
-   
-   # For Linux
-   flutter build linux
-   ```
-
-## 📖 Usage
-
-### Adding Your First Profile
-
-1. Launch AWS S3 Browser
-2. Click **"Add New Profile"**
-3. Enter your profile details:
-   - **Profile Name**: A friendly name for this AWS account
-   - **Access Key ID**: Your AWS access key
-   - **Secret Access Key**: Your AWS secret key
-   - **Region**: Your preferred AWS region (e.g., `us-east-1`)
-4. Click **"Save"**
-
-### Connecting to S3
-
-1. Select a profile from the list
-2. Click **"Connect"**
-3. Browse your buckets and objects!
-
-### Managing Files
-
-- **View Buckets**: All your buckets appear in the left sidebar
-- **Navigate Folders**: Click on folders to navigate, use breadcrumbs to go back
-- **Upload Files**: Click the upload button and select files
-- **Download Files**: Click on any file to download it
-
-### Managing Profiles
-
-- **Edit Profile**: Click the menu icon (⋮) next to a profile and select "Edit"
-- **Delete Profile**: Click the menu icon (⋮) and select "Delete"
-- **Switch Profiles**: Click "Logout" and connect with a different profile
-
-## 🔒 Security
-
-- Credentials are stored securely using platform-specific secure storage
-- No credentials are ever transmitted except directly to AWS
-- All AWS communication uses official AWS SDK with HTTPS
-- Credentials are encrypted at rest
 
 ## 🛠️ Tech Stack
 
 - **Framework**: Flutter 3.5.3
 - **State Management**: Provider
-- **AWS SDK**: aws_s3_api
-- **Secure Storage**: flutter_secure_storage
-- **File Handling**: file_picker, path_provider
+- **AWS SDK**: `aws_s3_api`, `aws_cloudfront_api`
+- **Secure Storage**: `flutter_secure_storage`
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+Contributions are what make the open-source community an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+Distributed under the MIT License. See `LICENSE` for more information.
 
 ## 💖 Support
 
-If you find this project useful, consider supporting its development:
+If S3 Scout makes your life easier, please consider giving it a ⭐ on GitHub or supporting the project:
 
 <a href="https://www.buymeacoffee.com/yourusername" target="_blank">
   <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="50">
 </a>
 
-## 🐛 Bug Reports & Feature Requests
-
-Found a bug or have a feature request? Please [open an issue](https://github.com/yourusername/aws_s3_browser/issues).
-
-## 📧 Contact
-
-- **Author**: Your Name
-- **Email**: your.email@example.com
-- **Twitter**: [@yourusername](https://twitter.com/yourusername)
-
-## 🙏 Acknowledgments
-
-- Built with [Flutter](https://flutter.dev)
-- AWS SDK by [AWS](https://aws.amazon.com)
-- Icons from [Material Design Icons](https://materialdesignicons.com)
-
 ---
 
 <div align="center">
-Made with ❤️ by Your Name
+Built with ❤️ for the AWS Community
 </div>

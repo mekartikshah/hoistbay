@@ -1,5 +1,5 @@
 name: s3_scout
-description: "S3 Scout – Free S3 Browser - A premium, modern application for AWS S3 operations"
+description: "A beautiful, modern, and open-source AWS S3 browser for desktop. Manage your buckets and CloudFront distributions with ease."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
