@@ -8,7 +8,7 @@
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-[Features](#features) • [Installation](#installation) • [Security](#-security) • [Support](#-support)
+[Features](#-features) • [Installation](#-installation) • [Security](#-security) • [Support](#-support)
 
 </div>
 
