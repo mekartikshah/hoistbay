@@ -53,11 +53,11 @@ class UploadButton extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.folder_open),
-              title: const Text('Upload Folder'),
-              subtitle: const Text('Select a folder to upload its contents'),
+              title: const Text('Upload Files & Folders'),
+              subtitle: const Text('Select files and folders to upload'),
               onTap: () {
                 Navigator.pop(sheetContext);
-                _uploadFolder(context);
+                _uploadFilesAndFolders(context);
               },
             ),
             ListTile(
@@ -77,16 +77,14 @@ class UploadButton extends StatelessWidget {
 
   Future<void> _uploadFiles(BuildContext context) async {
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        allowMultiple: true,
+      final result = await FilePicker.pickFiles(
         type: FileType.any,
-        withData: true,
       );
 
-      if (result != null && result.files.isNotEmpty) {
+      if (result.isNotEmpty) {
         final appState = context.read<AppState>();
         
-        final int totalFiles = result.files.length;
+        final int totalFiles = result.length;
         int uploadedCount = 0;
         int failedCount = 0;
         final ValueNotifier<int> progressNotifier = ValueNotifier<int>(0);
@@ -136,28 +134,19 @@ class UploadButton extends StatelessWidget {
         );
 
         try {
-          for (final file in result.files) {
+          for (final file in result) {
             currentFileNotifier.value = file.name;
             
             try {
-              // Get bytes: prefer in-memory bytes, fall back to reading from path (macOS desktop)
-              List<int>? bytes = file.bytes;
-              if (bytes == null && file.path != null) {
-                bytes = await File(file.path!).readAsBytes();
-              }
+              final bytes = await file.readAsBytes();
               
-              if (bytes != null) {
-                await appState.uploadObject(
-                  file.name,
-                  bytes,
-                  contentType: _getContentType(file.name),
-                  refresh: false,
-                );
-                uploadedCount++;
-              } else {
-                failedCount++;
-                print('Skipping ${file.name}: no bytes or path available');
-              }
+              await appState.uploadObject(
+                file.name,
+                bytes,
+                contentType: _getContentType(file.name),
+                refresh: false,
+              );
+              uploadedCount++;
             } catch (e) {
               failedCount++;
               print('Failed to upload ${file.name}: $e');
@@ -201,125 +190,157 @@ class UploadButton extends StatelessWidget {
     }
   }
 
-  Future<void> _uploadFolder(BuildContext context) async {
+  Future<void> _uploadFilesAndFolders(BuildContext context) async {
     try {
-      String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
-
-      if (selectedDirectory != null) {
-        final appState = context.read<AppState>();
-        final dir = Directory(selectedDirectory);
-        final folderName = dir.uri.pathSegments.where((e) => e.isNotEmpty).last;
-
-        List<File> filesToUpload = [];
-        await for (final entity in dir.list(recursive: true, followLinks: false)) {
-          if (entity is File) {
-            filesToUpload.add(entity);
-          }
-        }
-        
-        final int totalFiles = filesToUpload.length;
-
-        if (totalFiles == 0) {
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Folder is empty'),
-                backgroundColor: Colors.orange,
-              ),
-            );
-          }
-          return;
-        }
-        
-        int uploadedCount = 0;
-        final ValueNotifier<int> progressNotifier = ValueNotifier<int>(0);
-        final ValueNotifier<String> currentFileNotifier = ValueNotifier<String>('');
-
-        if (!context.mounted) return;
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) {
-            return AlertDialog(
-              title: const Text('Uploading Folder'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ValueListenableBuilder<int>(
-                    valueListenable: progressNotifier,
-                    builder: (context, count, child) {
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Progress: $count / $totalFiles files'),
-                          const SizedBox(height: 16),
-                          LinearProgressIndicator(
-                            value: totalFiles > 0 ? count / totalFiles : 0,
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  ValueListenableBuilder<String>(
-                    valueListenable: currentFileNotifier,
-                    builder: (context, fileName, child) {
-                      return Text(
-                        'Uploading: $fileName',
-                        style: const TextStyle(fontSize: 12, color: Colors.grey),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      );
-                    },
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-
-        try {
-          for (final file in filesToUpload) {
-            final relativePath = file.path.substring(selectedDirectory.length);
-            final cleanRelativePath = relativePath.replaceAll('\\', '/').replaceFirst(RegExp(r'^/'), '');
-            final objectKey = '$folderName/$cleanRelativePath';
-            
-            currentFileNotifier.value = cleanRelativePath;
-            
-            final bytes = await file.readAsBytes();
-            
-            await appState.uploadObject(
-              objectKey,
-              bytes,
-              contentType: _getContentType(file.path),
-              refresh: false,
-            );
-            uploadedCount++;
-            progressNotifier.value = uploadedCount;
-          }
-          await appState.loadObjects();
-        } finally {
-          if (context.mounted) {
-            Navigator.of(context, rootNavigator: true).pop();
-          }
-        }
-
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Uploaded $uploadedCount file(s) from $folderName successfully'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      }
+      final List<String> paths = await FilePicker.pickFileAndDirectoryPaths();
+      await uploadPaths(context, paths);
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Folder upload failed: $e'),
+            content: Text('Upload failed: $e'),
             backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  static Future<void> uploadPaths(BuildContext context, List<String> paths) async {
+    if (paths.isEmpty) return;
+
+    final appState = context.read<AppState>();
+    final List<_UploadItem> uploadItems = [];
+
+    // First pass: collect all files to upload
+    for (final path in paths) {
+      final type = FileSystemEntity.typeSync(path);
+      if (type == FileSystemEntityType.file) {
+        final fileName = path.split(RegExp(r'[/\\]')).last;
+        uploadItems.add(_UploadItem(
+          localPath: path,
+          objectKey: fileName,
+        ));
+      } else if (type == FileSystemEntityType.directory) {
+        final dir = Directory(path);
+        final folderName = dir.uri.pathSegments.where((e) => e.isNotEmpty).last;
+        await for (final entity in dir.list(recursive: true, followLinks: false)) {
+          if (entity is File) {
+            final relativePath = entity.path.substring(path.length);
+            final cleanRelativePath = relativePath.replaceAll('\\', '/').replaceFirst(RegExp(r'^/'), '');
+            uploadItems.add(_UploadItem(
+              localPath: entity.path,
+              objectKey: '$folderName/$cleanRelativePath',
+            ));
+          }
+        }
+      }
+    }
+
+    final int totalFiles = uploadItems.length;
+
+    if (totalFiles == 0) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No files to upload'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
+
+    int uploadedCount = 0;
+    int failedCount = 0;
+    final ValueNotifier<int> progressNotifier = ValueNotifier<int>(0);
+    final ValueNotifier<String> currentFileNotifier = ValueNotifier<String>('');
+
+    if (!context.mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Uploading Files & Folders'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ValueListenableBuilder<int>(
+                valueListenable: progressNotifier,
+                builder: (context, count, child) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Progress: $count / $totalFiles files'),
+                      const SizedBox(height: 16),
+                      LinearProgressIndicator(
+                        value: totalFiles > 0 ? count / totalFiles : 0,
+                      ),
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+              ValueListenableBuilder<String>(
+                valueListenable: currentFileNotifier,
+                builder: (context, fileName, child) {
+                  return Text(
+                    'Uploading: $fileName',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    try {
+      for (final item in uploadItems) {
+        currentFileNotifier.value = item.objectKey;
+
+        try {
+          final file = File(item.localPath);
+          final bytes = await file.readAsBytes();
+
+          await appState.uploadObject(
+            item.objectKey,
+            bytes,
+            contentType: _getContentType(item.localPath),
+            refresh: false,
+          );
+          uploadedCount++;
+        } catch (e) {
+          failedCount++;
+          print('Failed to upload ${item.objectKey}: $e');
+        }
+        progressNotifier.value = uploadedCount + failedCount;
+      }
+      await appState.loadObjects();
+    } finally {
+      if (context.mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+    }
+
+    if (context.mounted) {
+      if (failedCount > 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Uploaded $uploadedCount file(s), $failedCount failed'),
+            backgroundColor: failedCount == totalFiles ? Colors.red : Colors.orange,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Uploaded $uploadedCount file(s) successfully'),
+            backgroundColor: Colors.green,
           ),
         );
       }
@@ -388,7 +409,7 @@ class UploadButton extends StatelessWidget {
     );
   }
 
-  String? _getContentType(String fileName) {
+  static String? _getContentType(String fileName) {
     final extension = fileName.split('.').last.toLowerCase();
     switch (extension) {
       case 'jpg':
@@ -416,4 +437,11 @@ class UploadButton extends StatelessWidget {
         return null;
     }
   }
+}
+
+class _UploadItem {
+  final String localPath;
+  final String objectKey;
+
+  const _UploadItem({required this.localPath, required this.objectKey});
 }

@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:desktop_drop/desktop_drop.dart';
 import '../providers/app_state.dart';
 import '../widgets/bucket_list.dart';
 import '../widgets/object_list.dart';
 import '../widgets/breadcrumb_bar.dart';
 import '../widgets/unified_action_bar.dart';
 import '../widgets/default_headers_dialog.dart';
+import '../widgets/upload_button.dart';
 import 'cloudfront_manager_screen.dart';
 
 class BrowserScreen extends StatefulWidget {
@@ -18,6 +20,7 @@ class BrowserScreen extends StatefulWidget {
 
 class _BrowserScreenState extends State<BrowserScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  bool _isDragging = false;
 
   @override
   void initState() {
@@ -142,7 +145,33 @@ class _BrowserScreenState extends State<BrowserScreen> with SingleTickerProvider
                                           ],
                                         ),
                                       )
-                                    : const ObjectList(),
+                                    : DropTarget(
+                                        onDragEntered: (detail) {
+                                          setState(() => _isDragging = true);
+                                        },
+                                        onDragExited: (detail) {
+                                          setState(() => _isDragging = false);
+                                        },
+                                        onDragDone: (detail) async {
+                                          setState(() => _isDragging = false);
+                                          if (appState.selectedBucket == null) return;
+                                          final paths = detail.files
+                                              .map((f) => f.path)
+                                              .toList();
+                                          if (paths.isNotEmpty) {
+                                            await UploadButton.uploadPaths(context, paths);
+                                          }
+                                        },
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            border: _isDragging
+                                                ? Border.all(color: Colors.blue, width: 2)
+                                                : null,
+                                            color: _isDragging ? Colors.blue.shade50 : null,
+                                          ),
+                                          child: const ObjectList(),
+                                        ),
+                                      ),
                               ),
                             ],
                           ),

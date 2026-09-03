@@ -28,8 +28,19 @@ class AppState extends ChangeNotifier {
   List<DefaultHttpHeader> _defaultHeaders = [];
   List<TaskHistoryItem> _taskHistory = [];
   
+  String _searchQuery = '';
+  List<S3Object> _filteredObjects = [];
+  
   bool _isLoading = false;
   String? _error;
+
+  // Operation progress tracking
+  bool _operationInProgress = false;
+  int _operationCurrent = 0;
+  int _operationTotal = 0;
+  String _operationMessage = '';
+  String? _operationError;
+  bool _operationCancelled = false;
 
   // Getters
   AwsCredentials? get credentials => _credentials;
@@ -42,8 +53,17 @@ class AppState extends ChangeNotifier {
   Set<String> get selectedObjectKeys => _selectedObjectKeys;
   List<DefaultHttpHeader> get defaultHeaders => _defaultHeaders;
   List<TaskHistoryItem> get taskHistory => _taskHistory;
+  String get searchQuery => _searchQuery;
+  List<S3Object> get filteredObjects => _filteredObjects;
   bool get isLoading => _isLoading;
   String? get error => _error;
+
+  // Operation progress getters
+  bool get operationInProgress => _operationInProgress;
+  int get operationCurrent => _operationCurrent;
+  int get operationTotal => _operationTotal;
+  String get operationMessage => _operationMessage;
+  String? get operationError => _operationError;
   bool get isAuthenticated => _credentials != null && _awsService.isInitialized;
   
   AwsService get awsService => _awsService;
@@ -218,6 +238,8 @@ class AppState extends ChangeNotifier {
     
     try {
       _selectedObjectKeys.clear();
+      _searchQuery = '';
+      _filteredObjects = [];
       if (prefix != null) {
         _currentPrefix = prefix;
         _updateBreadcrumbs(prefix);
@@ -421,8 +443,9 @@ class AppState extends ChangeNotifier {
   }
 
   void selectAll() {
+    final targetObjects = _searchQuery.isNotEmpty ? _filteredObjects : _objects;
     _selectedObjectKeys.clear();
-    for (final obj in _objects) {
+    for (final obj in targetObjects) {
       _selectedObjectKeys.add(obj.key);
     }
     notifyListeners();
@@ -430,6 +453,64 @@ class AppState extends ChangeNotifier {
 
   void clearSelection() {
     _selectedObjectKeys.clear();
+    notifyListeners();
+  }
+
+  // Search methods
+  void searchObjects(String query) {
+    _searchQuery = query;
+    if (query.isEmpty) {
+      _filteredObjects = [];
+    } else {
+      final lowerQuery = query.toLowerCase();
+      _filteredObjects = _objects.where((obj) {
+        return obj.name.toLowerCase().contains(lowerQuery);
+      }).toList();
+    }
+    notifyListeners();
+  }
+
+  void clearSearch() {
+    _searchQuery = '';
+    _filteredObjects = [];
+    notifyListeners();
+  }
+
+  // Operation progress methods
+  void startOperation({required int total, required String message}) {
+    _operationInProgress = true;
+    _operationCurrent = 0;
+    _operationTotal = total;
+    _operationMessage = message;
+    _operationError = null;
+    _operationCancelled = false;
+    notifyListeners();
+  }
+
+  void updateOperationProgress(int current, {String? message}) {
+    _operationCurrent = current;
+    if (message != null) _operationMessage = message;
+    notifyListeners();
+  }
+
+  void setOperationError(String error) {
+    _operationError = error;
+    _operationInProgress = false;
+    notifyListeners();
+  }
+
+  void cancelOperation() {
+    _operationCancelled = true;
+    notifyListeners();
+  }
+
+  void clearOperation() {
+    _operationInProgress = false;
+    _operationCurrent = 0;
+    _operationTotal = 0;
+    _operationMessage = '';
+    _operationError = null;
+    _operationCancelled = false;
     notifyListeners();
   }
 
@@ -441,7 +522,6 @@ class AppState extends ChangeNotifier {
     _setError(null);
     
     final keysToDelete = _selectedObjectKeys.toList();
-    final allKeysToDelete = <String>{};
     final taskId = DateTime.now().millisecondsSinceEpoch.toString();
     await logTask(TaskHistoryItem(
       id: taskId,
@@ -452,25 +532,47 @@ class AppState extends ChangeNotifier {
     ));
     
     try {
+      // Enumerate all objects to delete
+      final allKeys = <String>[];
       for (final key in keysToDelete) {
         if (key.endsWith('/')) {
           final folderObjects = await _awsService.listAllObjectsRecursive(_selectedBucket!.name, prefix: key);
           for (final fObj in folderObjects) {
-            allKeysToDelete.add(fObj.key);
+            allKeys.add(fObj.key);
           }
         }
-        allKeysToDelete.add(key);
+        allKeys.add(key);
       }
       
-      await _awsService.deleteObjects(_selectedBucket!.name, allKeysToDelete.toList());
-      _selectedObjectKeys.clear();
+      // Delete in chunks of 1000 with progress
+      final chunks = <List<String>>[];
+      for (int i = 0; i < allKeys.length; i += 1000) {
+        chunks.add(allKeys.skip(i).take(1000).toList());
+      }
       
-      await updateTaskStatus(taskId, TaskStatus.completed);
-      await loadObjects();
+      startOperation(total: chunks.isEmpty ? 1 : chunks.length, message: 'Deleting ${allKeys.length} objects...');
+      
+      for (int i = 0; i < chunks.length; i++) {
+        if (_operationCancelled) break;
+        updateOperationProgress(i + 1, message: 'Deleting batch ${i + 1} of ${chunks.length}...');
+        await _awsService.deleteObjects(_selectedBucket!.name, chunks[i]);
+      }
+      
+      if (!_operationCancelled) {
+        _selectedObjectKeys.clear();
+        await updateTaskStatus(taskId, TaskStatus.completed);
+        await loadObjects();
+      } else {
+        await updateTaskStatus(taskId, TaskStatus.failed, details: 'Cancelled by user');
+      }
+      
+      clearOperation();
     } catch (e) {
+      setOperationError('Failed to delete selected objects: $e');
       await updateTaskStatus(taskId, TaskStatus.failed, details: e.toString());
       _setError('Failed to delete selected objects: $e');
       _setLoading(false);
+      rethrow;
     }
   }
 
@@ -497,28 +599,50 @@ class AppState extends ChangeNotifier {
       final parentPrefix = _currentPrefix;
       final newKey = parentPrefix + newName + (isFolder ? '/' : '');
 
+      // Build list of copy+delete operations
+      final items = <_CopyDeleteItem>[];
       if (isFolder) {
         final folderObjects = await _awsService.listAllObjectsRecursive(_selectedBucket!.name, prefix: oldKey);
         for (final obj in folderObjects) {
           final suffix = obj.key.substring(oldKey.length);
-          final destKey = newKey + suffix;
-          await _awsService.copyObject(_selectedBucket!.name, obj.key, _selectedBucket!.name, destKey);
-          await _awsService.deleteObject(_selectedBucket!.name, obj.key);
+          items.add(_CopyDeleteItem(
+            sourceKey: obj.key,
+            destKey: newKey + suffix,
+          ));
         }
-        await _awsService.copyObject(_selectedBucket!.name, oldKey, _selectedBucket!.name, newKey);
-        await _awsService.deleteObject(_selectedBucket!.name, oldKey);
+        items.add(_CopyDeleteItem(sourceKey: oldKey, destKey: newKey));
       } else {
-        await _awsService.copyObject(_selectedBucket!.name, oldKey, _selectedBucket!.name, newKey);
-        await _awsService.deleteObject(_selectedBucket!.name, oldKey);
+        items.add(_CopyDeleteItem(sourceKey: oldKey, destKey: newKey));
       }
       
-      _selectedObjectKeys.remove(oldKey);
-      await updateTaskStatus(taskId, TaskStatus.completed);
-      await loadObjects();
+      startOperation(total: items.length * 2, message: 'Renaming...');
+      
+      int progress = 0;
+      for (final item in items) {
+        if (_operationCancelled) break;
+        progress++;
+        updateOperationProgress(progress, message: 'Copying ${item.sourceKey}...');
+        await _awsService.copyObject(_selectedBucket!.name, item.sourceKey, _selectedBucket!.name, item.destKey);
+        progress++;
+        updateOperationProgress(progress, message: 'Deleting ${item.sourceKey}...');
+        await _awsService.deleteObject(_selectedBucket!.name, item.sourceKey);
+      }
+      
+      if (!_operationCancelled) {
+        _selectedObjectKeys.remove(oldKey);
+        await updateTaskStatus(taskId, TaskStatus.completed);
+        await loadObjects();
+      } else {
+        await updateTaskStatus(taskId, TaskStatus.failed, details: 'Cancelled by user');
+      }
+      
+      clearOperation();
     } catch (e) {
+      setOperationError('Failed to rename $oldKey: $e');
       await updateTaskStatus(taskId, TaskStatus.failed, details: e.toString());
       _setError('Failed to rename $oldKey: $e');
       _setLoading(false);
+      rethrow;
     }
   }
 
@@ -539,6 +663,8 @@ class AppState extends ChangeNotifier {
     ));
     
     try {
+      // Enumerate all copy+delete operations
+      final items = <_CopyDeleteItem>[];
       for (final key in keysToMove) {
         final isFolder = key.endsWith('/');
         final name = key.split('/').where((p) => p.isNotEmpty).last;
@@ -548,25 +674,117 @@ class AppState extends ChangeNotifier {
           final folderObjects = await _awsService.listAllObjectsRecursive(_selectedBucket!.name, prefix: key);
           for (final obj in folderObjects) {
             final suffix = obj.key.substring(key.length);
-            final destKey = newKey + suffix;
-            await _awsService.copyObject(_selectedBucket!.name, obj.key, _selectedBucket!.name, destKey);
-            await _awsService.deleteObject(_selectedBucket!.name, obj.key);
+            items.add(_CopyDeleteItem(sourceKey: obj.key, destKey: newKey + suffix));
           }
-          await _awsService.copyObject(_selectedBucket!.name, key, _selectedBucket!.name, newKey);
-          await _awsService.deleteObject(_selectedBucket!.name, key);
+          items.add(_CopyDeleteItem(sourceKey: key, destKey: newKey));
         } else {
-          await _awsService.copyObject(_selectedBucket!.name, key, _selectedBucket!.name, newKey);
-          await _awsService.deleteObject(_selectedBucket!.name, key);
+          items.add(_CopyDeleteItem(sourceKey: key, destKey: newKey));
         }
       }
       
-      _selectedObjectKeys.clear();
-      await updateTaskStatus(taskId, TaskStatus.completed);
-      await loadObjects();
+      startOperation(total: items.length * 2, message: 'Moving ${keysToMove.length} object(s)...');
+      
+      int progress = 0;
+      for (final item in items) {
+        if (_operationCancelled) break;
+        progress++;
+        updateOperationProgress(progress, message: 'Copying ${item.sourceKey}...');
+        await _awsService.copyObject(_selectedBucket!.name, item.sourceKey, _selectedBucket!.name, item.destKey);
+        progress++;
+        updateOperationProgress(progress, message: 'Deleting ${item.sourceKey}...');
+        await _awsService.deleteObject(_selectedBucket!.name, item.sourceKey);
+      }
+      
+      if (!_operationCancelled) {
+        _selectedObjectKeys.clear();
+        await updateTaskStatus(taskId, TaskStatus.completed);
+        await loadObjects();
+      } else {
+        await updateTaskStatus(taskId, TaskStatus.failed, details: 'Cancelled by user');
+      }
+      
+      clearOperation();
     } catch (e) {
+      setOperationError('Failed to move objects: $e');
       await updateTaskStatus(taskId, TaskStatus.failed, details: e.toString());
       _setError('Failed to move objects: $e');
       _setLoading(false);
+      rethrow;
+    }
+  }
+
+  Future<void> copySelected(String destBucket, String destPrefix) async {
+    if (_selectedBucket == null || _selectedObjectKeys.isEmpty) return;
+    
+    _setLoading(true);
+    _setError(null);
+    
+    final keysToCopy = _selectedObjectKeys.toList();
+    final taskId = DateTime.now().millisecondsSinceEpoch.toString();
+    await logTask(TaskHistoryItem(
+      id: taskId,
+      operationType: 'Copy',
+      objectKey: '${keysToCopy.length} object(s) -> $destBucket/$destPrefix',
+      status: TaskStatus.inProgress,
+      timestamp: DateTime.now(),
+    ));
+    
+    try {
+      // Detect destination region for cross-bucket copies
+      String? destRegion;
+      if (destBucket != _selectedBucket!.name) {
+        destRegion = await _awsService.getBucketRegion(destBucket);
+      }
+      
+      // Enumerate all objects to copy
+      final items = <_CopyItem>[];
+      for (final key in keysToCopy) {
+        final isFolder = key.endsWith('/');
+        final name = key.split('/').where((p) => p.isNotEmpty).last;
+        final newKey = destPrefix + name + (isFolder ? '/' : '');
+
+        if (isFolder) {
+          final folderObjects = await _awsService.listAllObjectsRecursive(_selectedBucket!.name, prefix: key);
+          for (final obj in folderObjects) {
+            final suffix = obj.key.substring(key.length);
+            items.add(_CopyItem(sourceKey: obj.key, destKey: newKey + suffix));
+          }
+          items.add(_CopyItem(sourceKey: key, destKey: newKey));
+        } else {
+          items.add(_CopyItem(sourceKey: key, destKey: newKey));
+        }
+      }
+      
+      startOperation(total: items.length, message: 'Copying ${keysToCopy.length} object(s)...');
+      
+      for (int i = 0; i < items.length; i++) {
+        if (_operationCancelled) break;
+        final item = items[i];
+        updateOperationProgress(i + 1, message: 'Copying ${item.sourceKey}...');
+        await _awsService.copyObject(
+          _selectedBucket!.name,
+          item.sourceKey,
+          destBucket,
+          item.destKey,
+          destRegion: destRegion,
+        );
+      }
+      
+      if (!_operationCancelled) {
+        _selectedObjectKeys.clear();
+        await updateTaskStatus(taskId, TaskStatus.completed);
+        await loadObjects();
+      } else {
+        await updateTaskStatus(taskId, TaskStatus.failed, details: 'Cancelled by user');
+      }
+      
+      clearOperation();
+    } catch (e) {
+      setOperationError('Failed to copy objects: $e');
+      await updateTaskStatus(taskId, TaskStatus.failed, details: e.toString());
+      _setError('Failed to copy objects: $e');
+      _setLoading(false);
+      rethrow;
     }
   }
 
@@ -576,4 +794,16 @@ class AppState extends ChangeNotifier {
     _cloudFrontService.dispose();
     super.dispose();
   }
+}
+
+class _CopyItem {
+  final String sourceKey;
+  final String destKey;
+  const _CopyItem({required this.sourceKey, required this.destKey});
+}
+
+class _CopyDeleteItem {
+  final String sourceKey;
+  final String destKey;
+  const _CopyDeleteItem({required this.sourceKey, required this.destKey});
 }

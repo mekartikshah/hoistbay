@@ -11,7 +11,10 @@ class ObjectList extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<AppState>(
       builder: (context, appState, child) {
-        if (appState.isLoading && appState.objects.isEmpty) {
+        final isSearching = appState.searchQuery.isNotEmpty;
+        final displayObjects = isSearching ? appState.filteredObjects : appState.objects;
+
+        if (appState.isLoading && displayObjects.isEmpty) {
           return const Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -24,7 +27,7 @@ class ObjectList extends StatelessWidget {
           );
         }
 
-        if (appState.objects.isEmpty && !appState.isLoading) {
+        if (displayObjects.isEmpty && !appState.isLoading) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -36,7 +39,11 @@ class ObjectList extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  appState.error != null ? 'Failed to load objects' : 'This folder is empty',
+                  appState.error != null
+                      ? 'Failed to load objects'
+                      : isSearching
+                          ? 'No results found'
+                          : 'This folder is empty',
                   style: TextStyle(
                     fontSize: 18,
                     color: appState.error != null ? Colors.red.shade700 : Colors.grey,
@@ -71,8 +78,9 @@ class ObjectList extends StatelessWidget {
         }
 
         final selectedKey = appState.selectedObjectKeys.length == 1 ? appState.selectedObjectKeys.first : null;
+        final allObjects = [...appState.objects, ...appState.filteredObjects];
         final selectedObject = selectedKey != null
-            ? appState.objects.firstWhere(
+            ? allObjects.firstWhere(
                 (o) => o.key == selectedKey,
                 orElse: () => S3Object(key: '', isFolder: true),
               )
@@ -83,9 +91,9 @@ class ObjectList extends StatelessWidget {
           children: [
             Expanded(
               child: ListView.builder(
-                itemCount: appState.objects.length,
+                itemCount: displayObjects.length,
                 itemBuilder: (context, index) {
-                  final object = appState.objects[index];
+                  final object = displayObjects[index];
                   final isSelected = appState.selectedObjectKeys.contains(object.key);
                   return _ObjectTile(
                     key: ValueKey(object.key),

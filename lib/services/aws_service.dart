@@ -456,15 +456,43 @@ class AwsService {
     }
   }
 
-  Future<void> copyObject(String sourceBucket, String sourceKey, String destBucket, String destKey) async {
+  Future<void> copyObject(String sourceBucket, String sourceKey, String destBucket, String destKey, {String? destRegion}) async {
     if (_s3 == null) throw Exception('AWS service not initialized');
     
     try {
-      await _s3!.copyObject(
-        bucket: destBucket,
-        copySource: Uri.encodeComponent('$sourceBucket/$sourceKey'),
-        key: destKey,
-      );
+      if (destRegion != null && destRegion != _credentials?.region) {
+        // Create temporary S3 client for destination region
+        final tempHttpClient = FixedSigningHttpClient(
+          accessKey: _credentials!.accessKeyId,
+          secretKey: _credentials!.secretAccessKey,
+          sessionToken: _credentials!.sessionToken,
+          region: destRegion,
+        );
+        final tempS3 = S3(
+          region: destRegion,
+          credentials: AwsClientCredentials(
+            accessKey: _credentials!.accessKeyId,
+            secretKey: _credentials!.secretAccessKey,
+            sessionToken: _credentials!.sessionToken,
+          ),
+          client: tempHttpClient,
+        );
+        try {
+          await tempS3.copyObject(
+            bucket: destBucket,
+            copySource: Uri.encodeComponent('$sourceBucket/$sourceKey'),
+            key: destKey,
+          );
+        } finally {
+          tempS3.close();
+        }
+      } else {
+        await _s3!.copyObject(
+          bucket: destBucket,
+          copySource: Uri.encodeComponent('$sourceBucket/$sourceKey'),
+          key: destKey,
+        );
+      }
     } catch (e) {
       throw Exception('Failed to copy object: $e');
     }
