@@ -63,6 +63,7 @@ dependencies:
   # URL launcher for external links
   url_launcher: ^6.2.2
   aws_cloudfront_api: ^2.0.0
+  crypto: ^3.0.7
 
 dev_dependencies:
   flutter_test:
