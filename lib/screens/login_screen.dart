@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/aws_credentials.dart';
 import '../providers/app_state.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_spacing.dart';
+import '../theme/app_typography.dart';
+import '../components/app_button.dart';
+import '../components/app_card.dart';
+import '../components/app_input.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,14 +21,14 @@ class _LoginScreenState extends State<LoginScreen> {
   final _accessKeyController = TextEditingController();
   final _secretKeyController = TextEditingController();
   final _sessionTokenController = TextEditingController();
-  
+
   String _selectedRegion = 'us-east-1';
   bool _obscureSecretKey = true;
   bool _obscureSessionToken = true;
 
   final List<String> _awsRegions = [
     'us-east-1',
-    'us-east-2', 
+    'us-east-2',
     'us-west-1',
     'us-west-2',
     'eu-west-1',
@@ -52,9 +58,9 @@ class _LoginScreenState extends State<LoginScreen> {
         accessKeyId: _accessKeyController.text.trim(),
         secretAccessKey: _secretKeyController.text.trim(),
         region: _selectedRegion,
-        sessionToken: _sessionTokenController.text.trim().isEmpty 
-          ? null 
-          : _sessionTokenController.text.trim(),
+        sessionToken: _sessionTokenController.text.trim().isEmpty
+            ? null
+            : _sessionTokenController.text.trim(),
       );
 
       try {
@@ -64,7 +70,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Login failed: $e'),
-              backgroundColor: Colors.red,
+              backgroundColor: AppColors.error,
             ),
           );
         }
@@ -75,63 +81,67 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('S3 Scout – Free S3 Browser'),
-        centerTitle: true,
-        backgroundColor: Colors.orange.shade700,
-        foregroundColor: Colors.white,
-      ),
+      backgroundColor: AppColors.backgroundSecondary,
       body: Center(
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 450),
-          padding: const EdgeInsets.all(24),
-          child: Card(
-            elevation: 8,
-            child: Padding(
-              padding: const EdgeInsets.all(32),
-              child: Form(
-                key: _formKey,
-                child: SingleChildScrollView(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.xxl),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: AppCard(
+                padding: const EdgeInsets.all(AppSpacing.xxl),
+                child: Form(
+                  key: _formKey,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                    Icon(
-                      Icons.cloud,
-                      size: 64,
-                      color: Colors.orange.shade700,
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'AWS Credentials',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
+                      Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Icon(
+                          Icons.cloud_outlined,
+                          size: 32,
+                          color: AppColors.primary,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 32),
-                    TextFormField(
-                      controller: _accessKeyController,
-                      decoration: const InputDecoration(
-                        labelText: 'Access Key ID',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.key),
+                      const SizedBox(height: AppSpacing.xl),
+                      Text(
+                        'Connect to AWS',
+                        style: AppTypography.title,
                       ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Please enter your access key ID';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _secretKeyController,
-                      decoration: InputDecoration(
-                        labelText: 'Secret Access Key',
-                        border: const OutlineInputBorder(),
-                        prefixIcon: const Icon(Icons.security),
-                        suffixIcon: IconButton(
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
+                        'Enter your AWS credentials to get started',
+                        style: AppTypography.caption,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: AppSpacing.xxl),
+                      AppInput(
+                        controller: _accessKeyController,
+                        label: 'Access Key ID',
+                        prefixIcon: Icons.key,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter your access key ID';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      AppInput(
+                        controller: _secretKeyController,
+                        label: 'Secret Access Key',
+                        prefixIcon: Icons.security,
+                        obscureText: _obscureSecretKey,
+                        suffix: IconButton(
                           icon: Icon(
                             _obscureSecretKey ? Icons.visibility : Icons.visibility_off,
+                            size: 18,
+                            color: AppColors.textSecondary,
                           ),
                           onPressed: () {
                             setState(() {
@@ -139,51 +149,66 @@ class _LoginScreenState extends State<LoginScreen> {
                             });
                           },
                         ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter your secret access key';
+                          }
+                          return null;
+                        },
                       ),
-                      obscureText: _obscureSecretKey,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Please enter your secret access key';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      value: _selectedRegion,
-                      decoration: const InputDecoration(
-                        labelText: 'Region',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.public),
+                      const SizedBox(height: AppSpacing.md),
+                      DropdownButtonFormField<String>(
+                        value: _selectedRegion,
+                        decoration: InputDecoration(
+                          labelText: 'Region',
+                          filled: true,
+                          fillColor: AppColors.surfaceSecondary,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
+                            borderSide: const BorderSide(color: AppColors.borderLight),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
+                            borderSide: const BorderSide(color: AppColors.borderLight),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
+                            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.lg,
+                            vertical: AppSpacing.md,
+                          ),
+                        ),
+                        items: _awsRegions.map((String region) {
+                          return DropdownMenuItem<String>(
+                            value: region,
+                            child: Text(region, style: AppTypography.body),
+                          );
+                        }).toList(),
+                        onChanged: (String? newValue) {
+                          setState(() {
+                            _selectedRegion = newValue!;
+                          });
+                        },
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please select your AWS region';
+                          }
+                          return null;
+                        },
                       ),
-                      items: _awsRegions.map((String region) {
-                        return DropdownMenuItem<String>(
-                          value: region,
-                          child: Text(region),
-                        );
-                      }).toList(),
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          _selectedRegion = newValue!;
-                        });
-                      },
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please select your AWS region';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _sessionTokenController,
-                      decoration: InputDecoration(
-                        labelText: 'Session Token (Optional)',
-                        border: const OutlineInputBorder(),
-                        prefixIcon: const Icon(Icons.token),
-                        suffixIcon: IconButton(
+                      const SizedBox(height: AppSpacing.md),
+                      AppInput(
+                        controller: _sessionTokenController,
+                        label: 'Session Token (Optional)',
+                        prefixIcon: Icons.token,
+                        obscureText: _obscureSessionToken,
+                        suffix: IconButton(
                           icon: Icon(
                             _obscureSessionToken ? Icons.visibility : Icons.visibility_off,
+                            size: 18,
+                            color: AppColors.textSecondary,
                           ),
                           onPressed: () {
                             setState(() {
@@ -192,68 +217,50 @@ class _LoginScreenState extends State<LoginScreen> {
                           },
                         ),
                       ),
-                      obscureText: _obscureSessionToken,
-                    ),
-                    const SizedBox(height: 24),
-                    Consumer<AppState>(
-                      builder: (context, appState, child) {
-                        return SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: appState.isLoading ? null : _login,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.orange.shade700,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                            ),
-                            child: appState.isLoading
-                              ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Text(
-                                  'Connect to AWS',
-                                  style: TextStyle(fontSize: 16),
-                                ),
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    Consumer<AppState>(
-                      builder: (context, appState, child) {
-                        if (appState.error != null) {
-                          return Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.red.shade50,
-                              border: Border.all(color: Colors.red.shade300),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.error, color: Colors.red.shade700, size: 20),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    appState.error!,
-                                    style: TextStyle(
-                                      color: Colors.red.shade700,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ),
-                              ],
+                      const SizedBox(height: AppSpacing.xl),
+                      Consumer<AppState>(
+                        builder: (context, appState, child) {
+                          return SizedBox(
+                            width: double.infinity,
+                            child: AppButton(
+                              label: 'Connect to AWS',
+                              variant: AppButtonVariant.primary,
+                              isLoading: appState.isLoading,
+                              onPressed: _login,
+                              size: const Size(double.infinity, 44),
                             ),
                           );
-                        }
-                        return const SizedBox.shrink();
-                      },
-                    ),
+                        },
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      Consumer<AppState>(
+                        builder: (context, appState, child) {
+                          if (appState.error != null) {
+                            return Container(
+                              padding: const EdgeInsets.all(AppSpacing.md),
+                              decoration: BoxDecoration(
+                                color: AppColors.errorLight,
+                                borderRadius: BorderRadius.circular(AppSpacing.buttonRadius),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.error, color: AppColors.error, size: 20),
+                                  const SizedBox(width: AppSpacing.md),
+                                  Expanded(
+                                    child: Text(
+                                      appState.error!,
+                                      style: AppTypography.caption.copyWith(
+                                        color: AppColors.error,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        },
+                      ),
                     ],
                   ),
                 ),

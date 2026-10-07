@@ -73,6 +73,61 @@ class CloudFrontService {
     return [];
   }
 
+  /// Clears the given [paths] from the distribution's edge caches.
+  Future<Invalidation> createInvalidation(String distributionId, List<String> paths) async {
+    if (_cloudFront == null) throw Exception('CloudFront service not initialized');
+
+    try {
+      final result = await _cloudFront!.createInvalidation2020_05_31(
+        distributionId: distributionId,
+        invalidationBatch: InvalidationBatch(
+          // Must be unique per request; CloudFront uses it to dedupe retries.
+          callerReference: 's3scout-${DateTime.now().microsecondsSinceEpoch}',
+          paths: Paths(quantity: paths.length, items: paths),
+        ),
+      );
+      final invalidation = result.invalidation;
+      if (invalidation == null) throw Exception('Empty response from CloudFront');
+      return invalidation;
+    } catch (e) {
+      throw Exception('Failed to create invalidation: $e');
+    }
+  }
+
+  /// Current status of one invalidation: 'InProgress' or 'Completed'.
+  Future<String> getInvalidationStatus(String distributionId, String invalidationId) async {
+    if (_cloudFront == null) throw Exception('CloudFront service not initialized');
+
+    try {
+      final result = await _cloudFront!.getInvalidation2020_05_31(
+        distributionId: distributionId,
+        id: invalidationId,
+      );
+      final invalidation = result.invalidation;
+      if (invalidation == null) throw Exception('Empty response from CloudFront');
+      return invalidation.status;
+    } catch (e) {
+      throw Exception('Failed to get invalidation status: $e');
+    }
+  }
+
+  /// Most recent invalidations for the distribution, newest first.
+  Future<List<InvalidationSummary>> listInvalidations(String distributionId, {int maxItems = 10}) async {
+    if (_cloudFront == null) throw Exception('CloudFront service not initialized');
+
+    try {
+      final result = await _cloudFront!.listInvalidations2020_05_31(
+        distributionId: distributionId,
+        maxItems: '$maxItems',
+      );
+      final items = [...?result.invalidationList?.items];
+      items.sort((a, b) => b.createTime.compareTo(a.createTime));
+      return items;
+    } catch (e) {
+      throw Exception('Failed to list invalidations: $e');
+    }
+  }
+
   void dispose() {
     _cloudFront = null;
   }

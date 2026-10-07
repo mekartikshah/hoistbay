@@ -62,3 +62,10 @@ test.dart
 !**/ios/**/default.mode2v3
 !**/ios/**/default.pbxuser
 !**/ios/**/default.perspectivev3
+
+# Local debug log written by older builds
+error_log.txt
+
+# Kilo agent worktrees (full checkouts) and local state
+.kilo/worktrees/
+.kilo/agent-manager.json

@@ -524,13 +524,24 @@ class AwsService {
       // automatically adds the required Content-MD5 header.
       for (int i = 0; i < keys.length; i += 1000) {
         final chunk = keys.skip(i).take(1000).toList();
-        await _s3!.deleteObjects(
+        final result = await _s3!.deleteObjects(
           bucket: bucketName,
           delete: Delete(
             objects: chunk.map((k) => ObjectIdentifier(key: k)).toList(),
             quiet: true,
           ),
         );
+        // S3 returns HTTP 200 even when individual keys fail (e.g. AccessDenied),
+        // listing them in `errors`. Surface them instead of silently succeeding.
+        final failures = result.errors ?? const [];
+        if (failures.isNotEmpty) {
+          final summary = failures
+              .take(5)
+              .map((f) => '${f.key}: ${f.code ?? 'Error'} ${f.message ?? ''}'.trim())
+              .join('; ');
+          final more = failures.length > 5 ? ' (+${failures.length - 5} more)' : '';
+          throw Exception('${failures.length} object(s) could not be deleted — $summary$more');
+        }
       }
     } catch (e) {
       throw Exception('Failed to delete objects: $e');

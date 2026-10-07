@@ -3,6 +3,12 @@ import 'package:provider/provider.dart';
 import '../models/aws_profile.dart';
 import '../providers/app_state.dart';
 import '../services/profile_service.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_spacing.dart';
+import '../theme/app_typography.dart';
+import '../components/app_button.dart';
+import '../components/app_dialog.dart';
+import '../components/app_progress.dart';
 import 'profile_editor_screen.dart';
 
 class ProfileSelectionScreen extends StatefulWidget {
@@ -37,29 +43,22 @@ class _ProfileSelectionScreenState extends State<ProfileSelectionScreen> {
     try {
       await ProfileService.setCurrentProfile(profile.id);
       await ProfileService.updateProfileLastUsed(profile.id);
-      
+
       if (mounted) {
         final appState = context.read<AppState>();
         appState.setCurrentProfile(profile);
         await appState.login(profile.credentials);
-        
-        // Navigate to browser screen
-        // If this ProfileSelectionScreen is shown by AppWrapper's Consumer, 
-        // the Consumer will rebuild and show BrowserScreen automatically.
-        // But if this is a pushed route (from previous navigation), we need to pop back
-        // to let the AppWrapper's Consumer handle the navigation.
+
         if (Navigator.of(context).canPop()) {
-          // We're in a pushed route, pop back to AppWrapper
           Navigator.of(context).popUntil((route) => route.isFirst);
         }
       }
     } catch (e) {
-      print('Login failed with error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to connect: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -69,20 +68,11 @@ class _ProfileSelectionScreenState extends State<ProfileSelectionScreen> {
   Future<void> _deleteProfile(AwsProfile profile) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Profile'),
-        content: Text('Are you sure you want to delete "${profile.name}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
-          ),
-        ],
+      builder: (context) => AppConfirmDialog(
+        title: 'Delete Profile',
+        message: 'Are you sure you want to delete "${profile.name}"?',
+        confirmLabel: 'Delete',
+        isDestructive: true,
       ),
     );
 
@@ -95,171 +85,80 @@ class _ProfileSelectionScreenState extends State<ProfileSelectionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
-      appBar: AppBar(
-        title: const Text('S3 Scout – Select Profile'),
-        backgroundColor: Colors.grey.shade50,
-        foregroundColor: Colors.grey.shade800,
-        elevation: 0,
-        centerTitle: false,
-        actions: [
-          IconButton(
-            onPressed: _loadProfiles,
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh',
-          ),
-        ],
-      ),
+      backgroundColor: AppColors.backgroundSecondary,
       body: Row(
         children: [
           // Sidebar
           Container(
-            width: 308,
-            color: Colors.grey.shade50,
+            width: 320,
+            color: AppColors.sidebarBackground,
             child: Column(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(AppSpacing.lg),
                   child: Row(
                     children: [
-                      Icon(Icons.person, color: Colors.grey.shade600),
-                      const SizedBox(width: 8),
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.person_outline,
+                          color: AppColors.primary,
+                          size: 18,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
                       Text(
                         'AWS Profiles',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.grey.shade800,
-                        ),
+                        style: AppTypography.headline,
                       ),
                     ],
                   ),
                 ),
+                const Divider(),
                 Expanded(
                   child: _isLoading
-                      ? const Center(child: CircularProgressIndicator())
+                      ? const Center(child: AppCircularProgress())
                       : _profiles.isEmpty
-                          ? const Center(
-                              child: Text(
-                                'No profiles yet\nClick + to add your first profile',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(color: Colors.grey),
-                              ),
+                          ? const AppEmptyState(
+                              icon: Icons.person_off_outlined,
+                              title: 'No profiles yet',
+                              subtitle: 'Click + to add your first profile',
                             )
                           : ListView.builder(
+                              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
                               itemCount: _profiles.length,
                               itemBuilder: (context, index) {
                                 final profile = _profiles[index];
-                                return Card(
-                                  margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(12),
-                                    child: Row(
-                                      children: [
-                                        CircleAvatar(
-                                          backgroundColor: Colors.blue.shade100,
-                                          child: Text(
-                                            profile.name.isNotEmpty
-                                                ? profile.name[0].toUpperCase()
-                                                : 'P',
-                                            style: TextStyle(
-                                              color: Colors.blue.shade700,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                profile.name,
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.w500,
-                                                  fontSize: 16,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Text(
-                                                profile.credentials.region,
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  color: Colors.grey.shade600,
-                                                ),
-                                              ),
-                                              Text(
-                                                'Last used: ${_formatDate(profile.lastUsed)}',
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: Colors.grey.shade500,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        ElevatedButton(
-                                          onPressed: () => _selectProfile(profile),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.green.shade600,
-                                            foregroundColor: Colors.white,
-                                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(6),
-                                            ),
-                                          ),
-                                          child: const Text('Connect'),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        PopupMenuButton(
-                                    itemBuilder: (context) => [
-                                      PopupMenuItem(
-                                        value: 'edit',
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.edit, size: 18, color: Colors.grey.shade600),
-                                            const SizedBox(width: 8),
-                                            const Text('Edit'),
-                                          ],
-                                        ),
+                                return _ProfileCard(
+                                  profile: profile,
+                                  onConnect: () => _selectProfile(profile),
+                                  onEdit: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => ProfileEditorScreen(profile: profile),
                                       ),
-                                      PopupMenuItem(
-                                        value: 'delete',
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.delete, size: 18, color: Colors.red.shade600),
-                                            const SizedBox(width: 8),
-                                            const Text('Delete'),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                    onSelected: (value) {
-                                      if (value == 'edit') {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => ProfileEditorScreen(profile: profile),
-                                          ),
-                                        ).then((_) => _loadProfiles());
-                                      } else if (value == 'delete') {
-                                        _deleteProfile(profile);
-                                      }
-                                    },
-                                  ),
-                                      ],
-                                    ),
-                                  ),
+                                    ).then((_) => _loadProfiles());
+                                  },
+                                  onDelete: () => _deleteProfile(profile),
                                 );
                               },
                             ),
                 ),
+                const Divider(),
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(AppSpacing.lg),
                   child: SizedBox(
                     width: double.infinity,
-                    child: ElevatedButton.icon(
+                    child: AppButton(
+                      label: 'Add New Profile',
+                      icon: Icons.add,
+                      variant: AppButtonVariant.primary,
                       onPressed: () {
                         Navigator.push(
                           context,
@@ -268,13 +167,6 @@ class _ProfileSelectionScreenState extends State<ProfileSelectionScreen> {
                           ),
                         ).then((_) => _loadProfiles());
                       },
-                      icon: const Icon(Icons.add),
-                      label: const Text('Add New Profile'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue.shade600,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
                     ),
                   ),
                 ),
@@ -284,41 +176,39 @@ class _ProfileSelectionScreenState extends State<ProfileSelectionScreen> {
           // Main content
           Expanded(
             child: Container(
-              padding: const EdgeInsets.all(32),
+              padding: const EdgeInsets.all(AppSpacing.xxl),
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      Icons.cloud_outlined,
-                      size: 128,
-                      color: Colors.grey.shade400,
+                    Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: const Icon(
+                        Icons.cloud_outlined,
+                        size: 56,
+                        color: AppColors.primary,
+                      ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppSpacing.xl),
                     Text(
                       'S3 Scout',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.w300,
-                        color: Colors.grey.shade700,
-                      ),
+                      style: AppTypography.display,
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppSpacing.sm),
                     Text(
                       'Select a profile to connect to your AWS S3 buckets',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey.shade600,
-                      ),
+                      style: AppTypography.body.copyWith(color: AppColors.textSecondary),
                     ),
                     if (_profiles.isNotEmpty) ...[
-                      const SizedBox(height: 32),
+                      const SizedBox(height: AppSpacing.xl),
                       Text(
                         'Choose from ${_profiles.length} saved profile${_profiles.length != 1 ? 's' : ''}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade500,
-                        ),
+                        style: AppTypography.caption,
                       ),
                     ],
                   ],
@@ -327,6 +217,122 @@ class _ProfileSelectionScreenState extends State<ProfileSelectionScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ProfileCard extends StatelessWidget {
+  final AwsProfile profile;
+  final VoidCallback onConnect;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const _ProfileCard({
+    required this.profile,
+    required this.onConnect,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final initials = profile.name.isNotEmpty ? profile.name[0].toUpperCase() : 'P';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+        border: Border.all(color: AppColors.borderLight),
+      ),
+      child: InkWell(
+        onTap: onConnect,
+        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Center(
+                  child: Text(
+                    initials,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      profile.name,
+                      style: AppTypography.bodyMedium,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      profile.credentials.region,
+                      style: AppTypography.caption,
+                    ),
+                    Text(
+                      'Last used: ${_formatDate(profile.lastUsed)}',
+                      style: AppTypography.small,
+                    ),
+                  ],
+                ),
+              ),
+              AppButton(
+                label: 'Connect',
+                variant: AppButtonVariant.primary,
+                onPressed: onConnect,
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert, color: AppColors.textSecondary),
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'edit',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.edit, size: 18, color: AppColors.textSecondary),
+                        const SizedBox(width: 8),
+                        Text('Edit', style: AppTypography.body),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.delete, size: 18, color: AppColors.error),
+                        const SizedBox(width: 8),
+                        Text('Delete', style: AppTypography.body.copyWith(color: AppColors.error)),
+                      ],
+                    ),
+                  ),
+                ],
+                onSelected: (value) {
+                  if (value == 'edit') {
+                    onEdit();
+                  } else if (value == 'delete') {
+                    onDelete();
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

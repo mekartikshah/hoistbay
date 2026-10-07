@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'providers/app_state.dart';
 import 'screens/profile_selection_screen.dart';
 import 'screens/browser_screen.dart';
+import 'theme/app_theme.dart';
 
 void main() {
   runApp(const AwsS3BrowserApp());
@@ -17,17 +18,7 @@ class AwsS3BrowserApp extends StatelessWidget {
       create: (context) => AppState(),
       child: MaterialApp(
         title: 'S3 Scout – Free S3 Browser',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.orange,
-            brightness: Brightness.light,
-          ),
-          useMaterial3: true,
-          appBarTheme: AppBarTheme(
-            backgroundColor: Colors.orange.shade700,
-            foregroundColor: Colors.white,
-          ),
-        ),
+        theme: AppTheme.lightTheme,
         home: const AppWrapper(),
         debugShowCheckedModeBanner: false,
       ),
