@@ -5,7 +5,7 @@ Features
 4. ✅ search feature
 5. ✅ (verified in app 2026-10-07) Add a feature to download the folder, right now we are not able to download a file.
 6. ✅ (verified in app 2026-10-07) let's implement clearing cahce option in CDN cloudfront.
-7. 🟡 (implemented, verify in app; sidebar → Activity) Status panel: a status menu where we can see the exact status of a clear cache, and once it's cleared it shows "cache cleared" with the time. Downloads, uploads and history are managed in the same status panel.
+7. ✅ (verified in app 2026-10-08; sidebar → Activity) Status panel: a status menu where we can see the exact status of a clear cache, and once it's cleared it shows "cache cleared" with the time. Downloads, uploads and history are managed in the same status panel.
 
 
 Issues
