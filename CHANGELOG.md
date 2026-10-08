@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-10-08
+
+### Added
+- macOS-style redesign with sidebar navigation
+- Activity panel tracking uploads, downloads, deletes and CloudFront invalidations
+- Folder download
+- CloudFront cache clearing (invalidations)
+- Search within buckets
+- Copy objects across buckets (including cross-region)
+- Multi-folder and drag-and-drop uploads with progress
+
+### Fixed
+- Deleting objects now reports per-object failures (e.g. AccessDenied) instead of silently succeeding
+- Folder delete no longer sends duplicate keys
+- Folder upload now includes files at the top level of the selected folder
+- Search text is cleared when navigating to another page
+
+### Changed
+- Release builds are published as `S3-Scout-macOS.zip` and `S3-Scout-Windows.zip`
+- Minimum macOS version is 12
+
 ## [1.0.0] - 2025-01-26
 
 ### Added
@@ -18,7 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Profile management (create, edit, delete)
 - Real-time bucket listing
 - Support for all AWS regions
-- Cross-platform support (macOS, Windows, Linux)
+- Cross-platform support (macOS, Windows)
 - Clean, modern UI with Material Design
 
 ### Security

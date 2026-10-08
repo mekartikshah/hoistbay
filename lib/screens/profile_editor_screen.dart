@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 import '../models/aws_profile.dart';
 import '../models/aws_credentials.dart';
 import '../services/profile_service.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_spacing.dart';
+import '../theme/app_typography.dart';
+import '../components/app_button.dart';
+import '../components/app_card.dart';
+import '../components/app_input.dart';
 
 class ProfileEditorScreen extends StatefulWidget {
   final AwsProfile? profile;
@@ -18,7 +24,7 @@ class _ProfileEditorScreenState extends State<ProfileEditorScreen> {
   final _accessKeyController = TextEditingController();
   final _secretKeyController = TextEditingController();
   final _sessionTokenController = TextEditingController();
-  
+
   String _selectedRegion = 'us-east-1';
   bool _obscureSecretKey = true;
   bool _obscureSessionToken = true;
@@ -26,7 +32,7 @@ class _ProfileEditorScreenState extends State<ProfileEditorScreen> {
 
   final List<String> _awsRegions = [
     'us-east-1',
-    'us-east-2', 
+    'us-east-2',
     'us-west-1',
     'us-west-2',
     'eu-west-1',
@@ -73,9 +79,9 @@ class _ProfileEditorScreenState extends State<ProfileEditorScreen> {
         accessKeyId: _accessKeyController.text.trim(),
         secretAccessKey: _secretKeyController.text.trim(),
         region: _selectedRegion,
-        sessionToken: _sessionTokenController.text.trim().isEmpty 
-          ? null 
-          : _sessionTokenController.text.trim(),
+        sessionToken: _sessionTokenController.text.trim().isEmpty
+            ? null
+            : _sessionTokenController.text.trim(),
       );
 
       final profile = widget.profile?.copyWith(
@@ -93,7 +99,7 @@ class _ProfileEditorScreenState extends State<ProfileEditorScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Profile "${profile.name}" saved successfully'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
           ),
         );
       }
@@ -102,7 +108,7 @@ class _ProfileEditorScreenState extends State<ProfileEditorScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to save profile: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -116,24 +122,20 @@ class _ProfileEditorScreenState extends State<ProfileEditorScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: AppColors.backgroundSecondary,
       appBar: AppBar(
         title: Text(widget.profile == null ? 'Add New Profile' : 'Edit Profile'),
-        backgroundColor: Colors.grey.shade50,
-        foregroundColor: Colors.grey.shade800,
         elevation: 0,
         actions: [
-          TextButton(
-            onPressed: _isLoading ? null : _saveProfile,
-            child: _isLoading 
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('Save'),
+          Padding(
+            padding: const EdgeInsets.only(right: AppSpacing.lg),
+            child: AppButton(
+              label: 'Save',
+              variant: AppButtonVariant.primary,
+              isLoading: _isLoading,
+              onPressed: _saveProfile,
+            ),
           ),
-          const SizedBox(width: 8),
         ],
       ),
       body: Row(
@@ -141,46 +143,36 @@ class _ProfileEditorScreenState extends State<ProfileEditorScreen> {
           // Left panel with info
           Container(
             width: 280,
-            color: Colors.grey.shade50,
-            padding: const EdgeInsets.all(24),
+            color: AppColors.sidebarBackground,
+            padding: const EdgeInsets.all(AppSpacing.xxl),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Profile Information',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey.shade800,
-                  ),
+                  style: AppTypography.headline,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.lg),
                 Text(
                   'Create a profile to save your AWS credentials for easy access. Your credentials are stored securely on your device.',
-                  style: TextStyle(
-                    color: Colors.grey.shade600,
-                    height: 1.4,
-                  ),
+                  style: AppTypography.body.copyWith(color: AppColors.textSecondary, height: 1.5),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: AppSpacing.xl),
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(AppSpacing.md),
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.blue.shade200),
+                    color: AppColors.infoLight,
+                    borderRadius: BorderRadius.circular(AppSpacing.buttonRadius),
+                    border: Border.all(color: AppColors.info.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.info, color: Colors.blue.shade600, size: 20),
-                      const SizedBox(width: 8),
+                      const Icon(Icons.info, color: AppColors.info, size: 20),
+                      const SizedBox(width: AppSpacing.md),
                       Expanded(
                         child: Text(
                           'You can create multiple profiles for different AWS accounts',
-                          style: TextStyle(
-                            color: Colors.blue.shade700,
-                            fontSize: 12,
-                          ),
+                          style: AppTypography.caption.copyWith(color: AppColors.primary),
                         ),
                       ),
                     ],
@@ -192,162 +184,153 @@ class _ProfileEditorScreenState extends State<ProfileEditorScreen> {
           // Main form
           Expanded(
             child: Container(
-              padding: const EdgeInsets.all(32),
+              padding: const EdgeInsets.all(AppSpacing.xxl),
               child: Center(
-                child: Container(
+                child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 500),
-                  child: Card(
-                    elevation: 2,
-                    child: Padding(
-                      padding: const EdgeInsets.all(32),
-                      child: Form(
-                        key: _formKey,
-                        child: SingleChildScrollView(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                widget.profile == null ? 'New AWS Profile' : 'Edit AWS Profile',
-                                style: const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w500,
+                  child: AppCard(
+                    padding: const EdgeInsets.all(AppSpacing.xxl),
+                    child: Form(
+                      key: _formKey,
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.profile == null ? 'New AWS Profile' : 'Edit AWS Profile',
+                              style: AppTypography.title,
+                            ),
+                            const SizedBox(height: AppSpacing.xxl),
+                            AppInput(
+                              controller: _nameController,
+                              label: 'Profile Name',
+                              prefixIcon: Icons.person,
+                              hint: 'e.g., Production, Development',
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Please enter a profile name';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            AppInput(
+                              controller: _accessKeyController,
+                              label: 'Access Key ID',
+                              prefixIcon: Icons.key,
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Please enter your access key ID';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            AppInput(
+                              controller: _secretKeyController,
+                              label: 'Secret Access Key',
+                              prefixIcon: Icons.security,
+                              obscureText: _obscureSecretKey,
+                              suffix: IconButton(
+                                icon: Icon(
+                                  _obscureSecretKey ? Icons.visibility : Icons.visibility_off,
+                                  size: 18,
+                                  color: AppColors.textSecondary,
                                 ),
-                              ),
-                              const SizedBox(height: 24),
-                              TextFormField(
-                                controller: _nameController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Profile Name',
-                                  border: OutlineInputBorder(),
-                                  prefixIcon: Icon(Icons.person),
-                                  hintText: 'e.g., Production, Development',
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.trim().isEmpty) {
-                                    return 'Please enter a profile name';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 16),
-                              TextFormField(
-                                controller: _accessKeyController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Access Key ID',
-                                  border: OutlineInputBorder(),
-                                  prefixIcon: Icon(Icons.key),
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.trim().isEmpty) {
-                                    return 'Please enter your access key ID';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 16),
-                              TextFormField(
-                                controller: _secretKeyController,
-                                decoration: InputDecoration(
-                                  labelText: 'Secret Access Key',
-                                  border: const OutlineInputBorder(),
-                                  prefixIcon: const Icon(Icons.security),
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _obscureSecretKey ? Icons.visibility : Icons.visibility_off,
-                                    ),
-                                    onPressed: () {
-                                      setState(() {
-                                        _obscureSecretKey = !_obscureSecretKey;
-                                      });
-                                    },
-                                  ),
-                                ),
-                                obscureText: _obscureSecretKey,
-                                validator: (value) {
-                                  if (value == null || value.trim().isEmpty) {
-                                    return 'Please enter your secret access key';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 16),
-                              DropdownButtonFormField<String>(
-                                value: _selectedRegion,
-                                decoration: const InputDecoration(
-                                  labelText: 'Region',
-                                  border: OutlineInputBorder(),
-                                  prefixIcon: Icon(Icons.public),
-                                ),
-                                items: _awsRegions.map((String region) {
-                                  return DropdownMenuItem<String>(
-                                    value: region,
-                                    child: Text(region),
-                                  );
-                                }).toList(),
-                                onChanged: (String? newValue) {
+                                onPressed: () {
                                   setState(() {
-                                    _selectedRegion = newValue!;
+                                    _obscureSecretKey = !_obscureSecretKey;
                                   });
                                 },
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Please select your AWS region';
-                                  }
-                                  return null;
+                              ),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Please enter your secret access key';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            DropdownButtonFormField<String>(
+                              value: _selectedRegion,
+                              decoration: InputDecoration(
+                                labelText: 'Region',
+                                filled: true,
+                                fillColor: AppColors.surfaceSecondary,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
+                                  borderSide: const BorderSide(color: AppColors.borderLight),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
+                                  borderSide: const BorderSide(color: AppColors.borderLight),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
+                                  borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.lg,
+                                  vertical: AppSpacing.md,
+                                ),
+                                prefixIcon: const Icon(Icons.public, color: AppColors.textSecondary),
+                              ),
+                              items: _awsRegions.map((String region) {
+                                return DropdownMenuItem<String>(
+                                  value: region,
+                                  child: Text(region, style: AppTypography.body),
+                                );
+                              }).toList(),
+                              onChanged: (String? newValue) {
+                                setState(() {
+                                  _selectedRegion = newValue!;
+                                });
+                              },
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please select your AWS region';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            AppInput(
+                              controller: _sessionTokenController,
+                              label: 'Session Token (Optional)',
+                              prefixIcon: Icons.token,
+                              obscureText: _obscureSessionToken,
+                              suffix: IconButton(
+                                icon: Icon(
+                                  _obscureSessionToken ? Icons.visibility : Icons.visibility_off,
+                                  size: 18,
+                                  color: AppColors.textSecondary,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _obscureSessionToken = !_obscureSessionToken;
+                                  });
                                 },
                               ),
-                              const SizedBox(height: 16),
-                              TextFormField(
-                                controller: _sessionTokenController,
-                                decoration: InputDecoration(
-                                  labelText: 'Session Token (Optional)',
-                                  border: const OutlineInputBorder(),
-                                  prefixIcon: const Icon(Icons.token),
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _obscureSessionToken ? Icons.visibility : Icons.visibility_off,
-                                    ),
-                                    onPressed: () {
-                                      setState(() {
-                                        _obscureSessionToken = !_obscureSessionToken;
-                                      });
-                                    },
-                                  ),
+                            ),
+                            const SizedBox(height: AppSpacing.xl),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                AppButton(
+                                  label: 'Cancel',
+                                  variant: AppButtonVariant.text,
+                                  onPressed: () => Navigator.pop(context),
                                 ),
-                                obscureText: _obscureSessionToken,
-                                maxLines: _obscureSessionToken ? 1 : 3,
-                              ),
-                              const SizedBox(height: 24),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  TextButton(
-                                    onPressed: _isLoading ? null : () => Navigator.pop(context),
-                                    child: const Text('Cancel'),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  ElevatedButton(
-                                    onPressed: _isLoading ? null : _saveProfile,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.blue.shade600,
-                                      foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                                    ),
-                                    child: _isLoading
-                                      ? const SizedBox(
-                                          height: 16,
-                                          width: 16,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: Colors.white,
-                                          ),
-                                        )
-                                      : Text(widget.profile == null ? 'Create Profile' : 'Save Changes'),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
+                                const SizedBox(width: AppSpacing.md),
+                                AppButton(
+                                  label: widget.profile == null ? 'Create Profile' : 'Save Changes',
+                                  variant: AppButtonVariant.primary,
+                                  isLoading: _isLoading,
+                                  onPressed: _saveProfile,
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
                     ),

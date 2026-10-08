@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
 import '../models/s3_object.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_spacing.dart';
+import '../theme/app_typography.dart';
+import '../components/app_button.dart';
+import '../components/app_progress.dart';
 import 'object_details_pane.dart';
 
 class ObjectList extends StatelessWidget {
@@ -15,69 +20,32 @@ class ObjectList extends StatelessWidget {
         final displayObjects = isSearching ? appState.filteredObjects : appState.objects;
 
         if (appState.isLoading && displayObjects.isEmpty) {
-          return const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text('Loading objects...'),
-              ],
-            ),
-          );
+          return const AppLoadingOverlay(message: 'Loading objects...');
         }
 
         if (displayObjects.isEmpty && !appState.isLoading) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  appState.error != null ? Icons.error : Icons.folder_open,
-                  size: 64,
-                  color: appState.error != null ? Colors.red : Colors.grey,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  appState.error != null
-                      ? 'Failed to load objects'
-                      : isSearching
-                          ? 'No results found'
-                          : 'This folder is empty',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: appState.error != null ? Colors.red.shade700 : Colors.grey,
-                  ),
-                ),
-                if (appState.error != null) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    appState.error!,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      appState.loadObjects();
-                    },
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Retry'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange.shade700,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ],
-              ],
-            ),
+          return AppEmptyState(
+            icon: appState.error != null ? Icons.error_outline : Icons.folder_open,
+            title: appState.error != null
+                ? 'Failed to load objects'
+                : isSearching
+                    ? 'No results found'
+                    : 'This folder is empty',
+            subtitle: appState.error,
+            action: appState.error != null
+                ? AppButton(
+                    label: 'Retry',
+                    icon: Icons.refresh,
+                    variant: AppButtonVariant.secondary,
+                    onPressed: () => appState.loadObjects(),
+                  )
+                : null,
           );
         }
 
-        final selectedKey = appState.selectedObjectKeys.length == 1 ? appState.selectedObjectKeys.first : null;
+        final selectedKey = appState.selectedObjectKeys.length == 1
+            ? appState.selectedObjectKeys.first
+            : null;
         final allObjects = [...appState.objects, ...appState.filteredObjects];
         final selectedObject = selectedKey != null
             ? allObjects.firstWhere(
@@ -85,7 +53,9 @@ class ObjectList extends StatelessWidget {
                 orElse: () => S3Object(key: '', isFolder: true),
               )
             : null;
-        final showDetailsPane = selectedObject != null && !selectedObject.isFolder && selectedObject.key.isNotEmpty;
+        final showDetailsPane = selectedObject != null &&
+            !selectedObject.isFolder &&
+            selectedObject.key.isNotEmpty;
 
         return Column(
           children: [
@@ -104,10 +74,12 @@ class ObjectList extends StatelessWidget {
               ),
             ),
             if (showDetailsPane)
-              SizedBox(
-                height: 300,
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                height: 280,
                 child: ObjectDetailsPane(
-                  object: selectedObject!,
+                  object: selectedObject,
                   bucketName: appState.selectedBucket!.name,
                 ),
               ),
@@ -126,48 +98,77 @@ class _ObjectTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () {
-        context.read<AppState>().toggleSelection(object.key);
-      },
-      onDoubleTap: object.isFolder ? () {
-        context.read<AppState>().navigateToFolder(object.key);
-      } : null,
-      child: Container(
-        color: isSelected ? Colors.blue.shade50 : null,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
-            Icon(
-              object.isFolder ? Icons.folder : _getFileIcon(object.name),
-              color: object.isFolder ? Colors.amber.shade700 : Colors.blue.shade700,
+    return Material(
+      color: isSelected ? AppColors.selectionBlueLight : Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          context.read<AppState>().toggleSelection(object.key);
+        },
+        onDoubleTap: object.isFolder
+            ? () {
+                context.read<AppState>().navigateToFolder(object.key);
+              }
+            : null,
+        hoverColor: AppColors.sidebarHover,
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.md,
+          ),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(color: AppColors.borderLight.withValues(alpha: 0.5)),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(object.name, style: const TextStyle(fontSize: 16)),
-                  if (!object.isFolder) ...[
-                    const SizedBox(height: 4),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: object.isFolder
+                      ? AppColors.warning.withValues(alpha: 0.12)
+                      : AppColors.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Center(
+                  child: Icon(
+                    object.isFolder ? Icons.folder : _getFileIcon(object.name),
+                    size: 18,
+                    color: object.isFolder ? AppColors.warning : AppColors.primary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      'Size: ${object.displaySize}  •  Modified: ${_formatDateTime(object.lastModified!)}',
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                      object.name,
+                      style: AppTypography.body.copyWith(
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                      ),
                     ),
+                    if (!object.isFolder) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        '${object.displaySize}  •  ${_formatDateTime(object.lastModified!)}',
+                        style: AppTypography.caption,
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-            if (object.isFolder)
-              IconButton(
-                icon: const Icon(Icons.chevron_right),
-                color: Colors.grey,
-                onPressed: () {
-                  context.read<AppState>().navigateToFolder(object.key);
-                },
-                tooltip: 'Open folder',
-              ),
-          ],
+              if (object.isFolder)
+                AppIconButton(
+                  icon: Icons.chevron_right,
+                  onPressed: () {
+                    context.read<AppState>().navigateToFolder(object.key);
+                  },
+                ),
+            ],
+          ),
         ),
       ),
     );

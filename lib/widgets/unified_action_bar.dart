@@ -1,8 +1,15 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import '../providers/app_state.dart';
+import '../models/task_history.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_spacing.dart';
+import '../theme/app_typography.dart';
+import '../components/app_button.dart';
+import '../components/app_dialog.dart';
+import '../components/app_input.dart';
+import '../components/app_progress.dart';
 import 'upload_button.dart';
 
 class UnifiedActionBar extends StatefulWidget {
@@ -14,28 +21,23 @@ class UnifiedActionBar extends StatefulWidget {
 
 class _UnifiedActionBarState extends State<UnifiedActionBar> {
   final TextEditingController _searchController = TextEditingController();
-  Timer? _debounceTimer;
 
   @override
   void initState() {
     super.initState();
     _searchController.addListener(() {
-      setState(() {}); // Rebuild to show/hide clear button
+      setState(() {});
     });
   }
 
   @override
   void dispose() {
-    _debounceTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
   void _onSearchChanged(String value) {
-    _debounceTimer?.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
-      context.read<AppState>().searchObjects(value);
-    });
+    context.read<AppState>().searchObjects(value);
   }
 
   void _clearSearch() {
@@ -47,72 +49,77 @@ class _UnifiedActionBarState extends State<UnifiedActionBar> {
   Widget build(BuildContext context) {
     return Consumer<AppState>(
       builder: (context, appState, child) {
+        // Navigating (folder, breadcrumb, bucket) resets the query in AppState;
+        // empty the box too so stale text doesn't leak into the next search.
+        if (appState.searchQuery.isEmpty && _searchController.text.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && context.read<AppState>().searchQuery.isEmpty) {
+              _searchController.clear();
+            }
+          });
+        }
         if (appState.selectedObjectKeys.isEmpty) {
-          // Default State: No selection
           return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white,
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg,
+              vertical: AppSpacing.md,
+            ),
+            decoration: const BoxDecoration(
+              color: AppColors.background,
               border: Border(
-                bottom: BorderSide(color: Colors.grey.shade200),
+                bottom: BorderSide(color: AppColors.borderLight),
               ),
             ),
             child: Row(
               children: [
                 Expanded(
-                  child: TextField(
+                  child: AppSearchField(
                     controller: _searchController,
+                    hint: 'Search files and folders...',
                     onChanged: _onSearchChanged,
-                    decoration: InputDecoration(
-                      hintText: 'Search files and folders...',
-                      prefixIcon: const Icon(Icons.search),
-                      suffixIcon: _searchController.text.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear),
-                              onPressed: _clearSearch,
-                            )
-                          : null,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                      isDense: true,
-                    ),
+                    onClear: _clearSearch,
                   ),
                 ),
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: () {
-                    appState.loadObjects(); // Refresh current prefix
-                  },
-                  icon: const Icon(Icons.refresh),
+                const SizedBox(width: AppSpacing.md),
+                AppIconButton(
+                  icon: Icons.refresh,
                   tooltip: 'Refresh',
-                  color: Colors.grey.shade700,
+                  onPressed: () => appState.loadObjects(),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSpacing.sm),
+                AppIconButton(
+                  icon: Icons.create_new_folder,
+                  tooltip: 'Create Folder',
+                  onPressed: () => UploadButton.showCreateFolderDialog(context),
+                ),
+                const SizedBox(width: AppSpacing.sm),
                 const UploadButton(),
               ],
             ),
           );
         }
 
-        // Selection State
+        // Selection state
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.blue.shade50,
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.md,
+          ),
+          decoration: const BoxDecoration(
+            color: AppColors.selectionBlueLight,
             border: Border(
-              bottom: BorderSide(color: Colors.blue.shade200),
+              bottom: BorderSide(color: AppColors.borderLight),
             ),
           ),
           child: Row(
             children: [
               Text(
                 '${appState.selectedObjectKeys.length} selected',
-                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
+                style: AppTypography.bodyMedium.copyWith(
+                  color: AppColors.primary,
+                ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: AppSpacing.lg),
               TextButton(
                 onPressed: () => appState.selectAll(),
                 child: const Text('Select All'),
@@ -122,75 +129,36 @@ class _UnifiedActionBarState extends State<UnifiedActionBar> {
                 child: const Text('Clear'),
               ),
               const Spacer(),
+              AppIconButton(
+                icon: Icons.download,
+                tooltip: 'Download',
+                color: AppColors.primary,
+                onPressed: () => _downloadSelected(context, appState),
+              ),
               if (appState.selectedObjectKeys.length == 1) ...[
-                IconButton(
-                  icon: const Icon(Icons.download),
-                  tooltip: 'Download',
-                  color: Colors.blue.shade700,
-                  onPressed: () async {
-                    final object = appState.objects.firstWhere((o) => o.key == appState.selectedObjectKeys.first);
-                    if (!object.isFolder) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Downloading ${object.name}...'),
-                          backgroundColor: Colors.blue,
-                        ),
-                      );
-                      try {
-                        final data = await appState.awsService.downloadObject(appState.selectedBucket!.name, object.key);
-                        final uri = await FilePicker.saveFile(
-                          fileName: object.name,
-                          bytes: data,
-                        );
-                        if (context.mounted) {
-                          if (uri != null) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Downloaded ${object.name} successfully.'),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
-                          }
-                        }
-                      } catch (e) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Failed to download ${object.name}: $e'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                        }
-                      }
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Cannot download folders directly.')),
-                      );
-                    }
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.edit),
+                AppIconButton(
+                  icon: Icons.edit,
                   tooltip: 'Rename',
-                  color: Colors.blue.shade700,
+                  color: AppColors.primary,
                   onPressed: () => _showRenameDialog(context, appState),
                 ),
               ],
-              IconButton(
-                icon: const Icon(Icons.content_copy),
+              AppIconButton(
+                icon: Icons.content_copy,
                 tooltip: 'Copy',
-                color: Colors.blue.shade700,
+                color: AppColors.primary,
                 onPressed: () => _showCopyDialog(context, appState),
               ),
-              IconButton(
-                icon: const Icon(Icons.drive_file_move),
+              AppIconButton(
+                icon: Icons.drive_file_move,
                 tooltip: 'Move',
-                color: Colors.blue.shade700,
+                color: AppColors.primary,
                 onPressed: () => _showMoveDialog(context, appState),
               ),
-              IconButton(
-                icon: const Icon(Icons.delete, color: Colors.red),
+              AppIconButton(
+                icon: Icons.delete,
                 tooltip: 'Delete',
+                color: AppColors.error,
                 onPressed: () => _showDeleteDialog(context, appState),
               ),
             ],
@@ -200,37 +168,103 @@ class _UnifiedActionBarState extends State<UnifiedActionBar> {
     );
   }
 
+  Future<void> _downloadSelected(BuildContext context, AppState appState) async {
+    final keys = appState.selectedObjectKeys;
+    if (keys.length > 1 || keys.first.endsWith('/')) {
+      return _downloadToFolder(context, appState);
+    }
+
+    final object = appState.objects.firstWhere((o) => o.key == keys.first);
+    final taskId = await appState.beginTask(
+      type: 'Download',
+      target: '${appState.selectedBucket!.name}/${object.key}',
+      details: 'Downloading ${object.displaySize}',
+    );
+    try {
+      final data = await appState.awsService.downloadObject(
+        appState.selectedBucket!.name,
+        object.key,
+      );
+      final uri = await FilePicker.saveFile(fileName: object.name, bytes: data);
+      await appState.updateTaskStatus(
+        taskId,
+        uri != null ? TaskStatus.completed : TaskStatus.cancelled,
+        details: uri != null ? 'Saved to $uri' : 'Save dialog dismissed',
+      );
+      if (context.mounted && uri != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Downloaded ${object.name} successfully.'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      await appState.updateTaskStatus(taskId, TaskStatus.failed, details: e.toString());
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to download ${object.name}: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Folders, or several items at once: pick a destination folder and
+  /// download everything into it, keeping the folder structure.
+  Future<void> _downloadToFolder(BuildContext context, AppState appState) async {
+    final destDir = await FilePicker.getDirectoryPath(
+      dialogTitle: 'Choose where to download ${appState.selectedObjectKeys.length} item(s)',
+    );
+    if (destDir == null || !context.mounted) return;
+
+    int downloaded = 0;
+    bool succeeded = false;
+    await _showOperationDialog(
+      context,
+      appState,
+      () async {
+        downloaded = await appState.downloadSelectedTo(destDir);
+        // Read now: closing the error dialog clears operationError.
+        succeeded = appState.operationError == null;
+      },
+      'Downloading',
+    );
+
+    if (context.mounted && succeeded && downloaded > 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Downloaded $downloaded file(s) to $destDir'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    }
+  }
+
   void _showDeleteDialog(BuildContext context, AppState appState) {
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete Selected Objects'),
-        content: Text('Are you sure you want to delete ${appState.selectedObjectKeys.length} selected object(s)?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-            onPressed: () {
-              Navigator.pop(dialogContext);
-              _showOperationDialog(
-                context, 
-                appState, 
-                () => appState.deleteSelected(), 
-                'Deleting Objects'
-              );
-            },
-            child: const Text('Delete'),
-          ),
-        ],
+      builder: (dialogContext) => AppConfirmDialog(
+        title: 'Delete Selected Objects',
+        message: 'Are you sure you want to delete ${appState.selectedObjectKeys.length} selected object(s)?',
+        confirmLabel: 'Delete',
+        isDestructive: true,
+        onConfirm: () {
+          _showOperationDialog(
+            context,
+            appState,
+            () => appState.deleteSelected(),
+            'Deleting Objects',
+          );
+        },
       ),
     );
   }
 
-  void _showOperationDialog(BuildContext context, AppState appState, Future<void> Function() action, String title) {
-    showDialog(
+  Future<void> _showOperationDialog(BuildContext context, AppState appState, Future<void> Function() action, String title) {
+    return showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => _OperationProgressDialog(
@@ -249,38 +283,43 @@ class _UnifiedActionBarState extends State<UnifiedActionBar> {
 
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(isFolder ? 'Rename Folder' : 'Rename File'),
-        content: TextField(
+      builder: (dialogContext) => AppDialog(
+        title: isFolder ? 'Rename Folder' : 'Rename File',
+        content: AppInput(
           controller: controller,
-          decoration: const InputDecoration(
-            labelText: 'New Name',
-            hintText: 'Enter new name',
-          ),
+          label: 'New Name',
+          hint: 'Enter new name',
+          autofocus: true,
+          onSubmitted: (_) => _doRename(context, appState, dialogContext, controller, currentName, oldKey),
         ),
         actions: [
-          TextButton(
+          AppButton(
+            label: 'Cancel',
+            variant: AppButtonVariant.text,
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
           ),
-          ElevatedButton(
-            onPressed: () {
-              final newName = controller.text.trim();
-              if (newName.isNotEmpty && newName != currentName) {
-                Navigator.pop(dialogContext);
-                _showOperationDialog(
-                  context,
-                  appState,
-                  () => appState.renameItem(oldKey, newName),
-                  'Renaming Object'
-                );
-              }
-            },
-            child: const Text('Rename'),
+          AppButton(
+            label: 'Rename',
+            variant: AppButtonVariant.primary,
+            onPressed: () => _doRename(context, appState, dialogContext, controller, currentName, oldKey),
           ),
         ],
       ),
     );
+  }
+
+  void _doRename(BuildContext context, AppState appState, BuildContext dialogContext,
+      TextEditingController controller, String currentName, String oldKey) {
+    final newName = controller.text.trim();
+    if (newName.isNotEmpty && newName != currentName) {
+      Navigator.pop(dialogContext);
+      _showOperationDialog(
+        context,
+        appState,
+        () => appState.renameItem(oldKey, newName),
+        'Renaming Object',
+      );
+    }
   }
 
   void _showMoveDialog(BuildContext context, AppState appState) {
@@ -288,29 +327,33 @@ class _UnifiedActionBarState extends State<UnifiedActionBar> {
 
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Move Selected Objects'),
+      builder: (dialogContext) => AppDialog(
+        title: 'Move Selected Objects',
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Move ${appState.selectedObjectKeys.length} object(s) to prefix:'),
-            const SizedBox(height: 8),
-            TextField(
+            Text(
+              'Move ${appState.selectedObjectKeys.length} object(s) to prefix:',
+              style: AppTypography.body,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            AppInput(
               controller: controller,
-              decoration: const InputDecoration(
-                labelText: 'Destination Prefix (e.g. folder/subfolder/)',
-                hintText: 'Leave empty for root',
-              ),
+              label: 'Destination Prefix',
+              hint: 'e.g. folder/subfolder/ (leave empty for root)',
             ),
           ],
         ),
         actions: [
-          TextButton(
+          AppButton(
+            label: 'Cancel',
+            variant: AppButtonVariant.text,
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
           ),
-          ElevatedButton(
+          AppButton(
+            label: 'Move',
+            variant: AppButtonVariant.primary,
             onPressed: () {
               String destPrefix = controller.text.trim();
               if (destPrefix.isNotEmpty && !destPrefix.endsWith('/')) {
@@ -321,10 +364,9 @@ class _UnifiedActionBarState extends State<UnifiedActionBar> {
                 context,
                 appState,
                 () => appState.moveSelected(destPrefix),
-                'Moving Objects'
+                'Moving Objects',
               );
             },
-            child: const Text('Move'),
           ),
         ],
       ),
@@ -339,15 +381,19 @@ class _UnifiedActionBarState extends State<UnifiedActionBar> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setState) {
-          return AlertDialog(
-            title: const Text('Copy Selected Objects'),
+          return AppDialog(
+            title: 'Copy Selected Objects',
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Copy ${appState.selectedObjectKeys.length} object(s) to:'),
-                const SizedBox(height: 16),
+                Text(
+                  'Copy ${appState.selectedObjectKeys.length} object(s) to:',
+                  style: AppTypography.body,
+                ),
+                const SizedBox(height: AppSpacing.lg),
                 DropdownButtonFormField<String>(
+                  isExpanded: true,
                   value: selectedBucketName,
                   decoration: const InputDecoration(
                     labelText: 'Destination Bucket',
@@ -356,34 +402,32 @@ class _UnifiedActionBarState extends State<UnifiedActionBar> {
                   items: appState.buckets.map((bucket) {
                     return DropdownMenuItem<String>(
                       value: bucket.name,
-                      child: Text(bucket.name),
+                      child: Text(bucket.name, overflow: TextOverflow.ellipsis),
                     );
                   }).toList(),
                   onChanged: (value) {
                     if (value != null) {
-                      setState(() {
-                        selectedBucketName = value;
-                      });
+                      setState(() => selectedBucketName = value);
                     }
                   },
                 ),
-                const SizedBox(height: 16),
-                TextField(
+                const SizedBox(height: AppSpacing.md),
+                AppInput(
                   controller: prefixController,
-                  decoration: const InputDecoration(
-                    labelText: 'Destination Prefix (e.g. folder/subfolder/)',
-                    hintText: 'Leave empty for root',
-                    border: OutlineInputBorder(),
-                  ),
+                  label: 'Destination Prefix',
+                  hint: 'e.g. folder/subfolder/ (leave empty for root)',
                 ),
               ],
             ),
             actions: [
-              TextButton(
+              AppButton(
+                label: 'Cancel',
+                variant: AppButtonVariant.text,
                 onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('Cancel'),
               ),
-              ElevatedButton(
+              AppButton(
+                label: 'Copy',
+                variant: AppButtonVariant.primary,
                 onPressed: () {
                   String destPrefix = prefixController.text.trim();
                   if (destPrefix.isNotEmpty && !destPrefix.endsWith('/')) {
@@ -394,10 +438,9 @@ class _UnifiedActionBarState extends State<UnifiedActionBar> {
                     context,
                     appState,
                     () => appState.copySelected(selectedBucketName, destPrefix),
-                    'Copying Objects'
+                    'Copying Objects',
                   );
                 },
-                child: const Text('Copy'),
               ),
             ],
           );
@@ -449,17 +492,16 @@ class _OperationProgressDialogState extends State<_OperationProgressDialog> {
         final bool isDone = !appState.operationInProgress && !hasError;
 
         if (isDone) {
-          // Should auto-close shortly; show minimal state to avoid flicker
-          return const AlertDialog(
+          return const AppDialog(
             content: SizedBox(
               height: 60,
-              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              child: Center(child: AppCircularProgress(size: 24, strokeWidth: 2)),
             ),
           );
         }
 
-        return AlertDialog(
-          title: Text(widget.title),
+        return AppDialog(
+          title: widget.title,
           content: ConstrainedBox(
             constraints: const BoxConstraints(minWidth: 320),
             child: Column(
@@ -468,33 +510,33 @@ class _OperationProgressDialogState extends State<_OperationProgressDialog> {
               children: [
                 if (hasError) ...[
                   const Center(
-                    child: Icon(Icons.error_outline, color: Colors.red, size: 48),
+                    child: Icon(Icons.error_outline, color: AppColors.error, size: 48),
                   ),
-                  const SizedBox(height: 16),
-                  const Text(
+                  const SizedBox(height: AppSpacing.lg),
+                  Text(
                     'Operation failed',
-                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+                    style: AppTypography.headline.copyWith(color: AppColors.error),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.sm),
                   Text(
                     appState.operationError!,
-                    style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+                    style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
                   ),
                 ] else ...[
-                  LinearProgressIndicator(
+                  AppProgressIndicator(
                     value: appState.operationTotal > 0
                         ? appState.operationCurrent / appState.operationTotal
                         : null,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.lg),
                   Text(
                     '${appState.operationCurrent} / ${appState.operationTotal}',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: AppTypography.bodyMedium,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.sm),
                   Text(
                     appState.operationMessage,
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    style: AppTypography.caption,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -504,17 +546,19 @@ class _OperationProgressDialogState extends State<_OperationProgressDialog> {
           ),
           actions: [
             if (!hasError && appState.operationInProgress)
-              TextButton(
+              AppButton(
+                label: 'Cancel',
+                variant: AppButtonVariant.text,
                 onPressed: () => appState.cancelOperation(),
-                child: const Text('Cancel'),
               ),
             if (hasError)
-              TextButton(
+              AppButton(
+                label: 'Close',
+                variant: AppButtonVariant.text,
                 onPressed: () {
                   appState.clearOperation();
                   Navigator.of(context).pop();
                 },
-                child: const Text('Close'),
               ),
           ],
         );
