@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
-import 'package:s3_scout/providers/app_state.dart';
-import 'package:s3_scout/widgets/unified_action_bar.dart';
+import 'package:hoistbay/providers/app_state.dart';
+import 'package:hoistbay/widgets/unified_action_bar.dart';
 
 void main() {
   testWidgets('search box empties when the app resets the search (e.g. folder change)',

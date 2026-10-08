@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// macOS-inspired neutral color palette for S3 Scout
+/// macOS-inspired neutral color palette for Hoistbay
 class AppColors {
   AppColors._();
 

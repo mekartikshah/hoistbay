@@ -1,6 +1,6 @@
-# Contributing to AWS S3 Browser
+# Contributing to Hoistbay
 
-First off, thank you for considering contributing to AWS S3 Browser! It's people like you that make this tool better for everyone.
+First off, thank you for considering contributing to Hoistbay! It's people like you that make this tool better for everyone.
 
 ## Code of Conduct
 

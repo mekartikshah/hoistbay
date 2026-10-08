@@ -3,7 +3,7 @@ import 'app_colors.dart';
 import 'app_typography.dart';
 import 'app_spacing.dart';
 
-/// Combined ThemeData for S3 Scout
+/// Combined ThemeData for Hoistbay
 class AppTheme {
   AppTheme._();
 

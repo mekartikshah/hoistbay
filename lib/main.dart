@@ -17,7 +17,7 @@ class AwsS3BrowserApp extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (context) => AppState(),
       child: MaterialApp(
-        title: 'S3 Scout – Free S3 Browser',
+        title: 'Hoistbay',
         theme: AppTheme.lightTheme,
         home: const AppWrapper(),
         debugShowCheckedModeBanner: false,

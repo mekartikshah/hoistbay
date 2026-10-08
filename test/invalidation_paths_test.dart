@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:s3_scout/utils/invalidation_paths.dart';
+import 'package:hoistbay/utils/invalidation_paths.dart';
 
 void main() {
   group('parseInvalidationPaths', () {

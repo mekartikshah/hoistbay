@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:s3_scout/utils/download_paths.dart';
+import 'package:hoistbay/utils/download_paths.dart';
 
 void main() {
   group('localPathForKey', () {

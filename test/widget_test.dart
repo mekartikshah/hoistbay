@@ -7,7 +7,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:s3_scout/main.dart';
+import 'package:hoistbay/main.dart';
 
 void main() {
   testWidgets('App loads login screen', (WidgetTester tester) async {
@@ -15,7 +15,7 @@ void main() {
     await tester.pumpWidget(const AwsS3BrowserApp());
 
     // Verify that the profile selection screen is displayed
-    expect(find.text('S3 Scout'), findsOneWidget);
+    expect(find.text('Hoistbay'), findsOneWidget);
     expect(find.text('AWS Profiles'), findsOneWidget);
     expect(find.text('Add New Profile'), findsOneWidget);
   });

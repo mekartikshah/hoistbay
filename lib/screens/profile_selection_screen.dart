@@ -196,12 +196,12 @@ class _ProfileSelectionScreenState extends State<ProfileSelectionScreen> {
                     ),
                     const SizedBox(height: AppSpacing.xl),
                     Text(
-                      'S3 Scout',
+                      'Hoistbay',
                       style: AppTypography.display,
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     Text(
-                      'Select a profile to connect to your AWS S3 buckets',
+                      'Select a profile to connect to your Amazon S3 buckets',
                       style: AppTypography.body.copyWith(color: AppColors.textSecondary),
                     ),
                     if (_profiles.isNotEmpty) ...[

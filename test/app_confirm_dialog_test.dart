@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:s3_scout/components/app_dialog.dart';
+import 'package:hoistbay/components/app_dialog.dart';
 
 void main() {
   testWidgets('confirm pops itself and leaves dialogs pushed by onConfirm open',
