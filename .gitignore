@@ -69,3 +69,13 @@ error_log.txt
 # Kilo agent worktrees (full checkouts) and local state
 .kilo/worktrees/
 .kilo/agent-manager.json
+
+# Local AI-assistant settings and scratch
+.claude/
+.hermes/
+
+# Website prototype kept outside the app repo
+.github/reactjswebsimulationdemo/
+
+# Real-account screenshot (contains AWS account ID / bucket names) — do not publish
+/hero-mockup.png
