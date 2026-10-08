@@ -1,12 +1,14 @@
-# S3 Scout
+# Hoistbay
 
 <div align="center">
 
-**A fast, open-source desktop app for AWS S3 and CloudFront.**
+<img src="docs/brand/hoistbay-icon-1536.png" alt="Hoistbay" width="96">
+
+**Hoistbay — a free, open-source desktop app for Amazon S3 and CloudFront.**
 Your keys stay in your OS keychain, and the app talks to nobody but AWS.
 
-[![Latest release](https://img.shields.io/github/v/release/mekartikshah/aws_s3_scout)](https://github.com/mekartikshah/aws_s3_scout/releases/latest)
-[![Build](https://github.com/mekartikshah/aws_s3_scout/actions/workflows/build.yml/badge.svg)](https://github.com/mekartikshah/aws_s3_scout/actions/workflows/build.yml)
+[![Latest release](https://img.shields.io/github/v/release/mekartikshah/hoistbay)](https://github.com/mekartikshah/hoistbay/releases/latest)
+[![Build](https://github.com/mekartikshah/hoistbay/actions/workflows/build.yml/badge.svg)](https://github.com/mekartikshah/hoistbay/actions/workflows/build.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
@@ -14,23 +16,23 @@ Your keys stay in your OS keychain, and the app talks to nobody but AWS.
 
 </div>
 
-![S3 Scout main window](docs/screenshots/main-window.png)
+![Hoistbay main window](docs/screenshots/main-window.png)
 
 ## ⬇️ Download
 
 | Platform | Download | Notes |
 | --- | --- | --- |
-| macOS 12+ (Apple Silicon & Intel) | [**S3-Scout-macOS.zip**](https://github.com/mekartikshah/aws_s3_scout/releases/latest/download/S3-Scout-macOS.zip) | Unzip and move **S3 Scout** to Applications |
-| Windows 10/11 (x64) | [**S3-Scout-Windows.zip**](https://github.com/mekartikshah/aws_s3_scout/releases/latest/download/S3-Scout-Windows.zip) | Unzip and run `s3_scout.exe` |
+| macOS 12+ (Apple Silicon & Intel) | [**Hoistbay-macOS.zip**](https://github.com/mekartikshah/hoistbay/releases/latest/download/Hoistbay-macOS.zip) | Unzip and move **Hoistbay** to Applications |
+| Windows 10/11 (x64) | [**Hoistbay-Windows.zip**](https://github.com/mekartikshah/hoistbay/releases/latest/download/Hoistbay-Windows.zip) | Unzip and run `hoistbay.exe` |
 | Linux | Coming soon | Watch the repo to get notified |
 
-All versions and release notes: [Releases](https://github.com/mekartikshah/aws_s3_scout/releases) · [CHANGELOG](CHANGELOG.md)
+All versions and release notes: [Releases](https://github.com/mekartikshah/hoistbay/releases) · [CHANGELOG](CHANGELOG.md)
 
 ### Opening the app the first time
 
 The builds are not code-signed yet, so your OS will ask before opening them.
 
-- **macOS:** right-click **S3 Scout** in Applications → **Open** → **Open**. If you only see "Move to Trash", go to **System Settings → Privacy & Security** and click **Open Anyway**. You only need to do this once.
+- **macOS:** right-click **Hoistbay** in Applications → **Open** → **Open**. If you only see "Move to Trash", go to **System Settings → Privacy & Security** and click **Open Anyway**. You only need to do this once.
 - **Windows:** if SmartScreen shows "Windows protected your PC", click **More info → Run anyway**.
 
 Prefer to verify everything yourself? [Build from source](#-build-from-source) — it takes a few minutes.
@@ -49,7 +51,7 @@ Prefer to verify everything yourself? [Build from source](#-build-from-source) �
 
 ## 🔒 Security
 
-S3 Scout has no backend and no telemetry.
+Hoistbay has no backend and no telemetry.
 
 - **Local credential storage:** keys are stored with `flutter_secure_storage`, which uses the macOS Keychain or Windows Credential Manager.
 - **Direct to AWS:** the app calls official AWS regional endpoints over HTTPS. Nothing is sent anywhere else.
@@ -62,8 +64,8 @@ S3 Scout has no backend and no telemetry.
 **Prerequisites:** [Flutter](https://docs.flutter.dev/get-started/install) (latest stable), and Xcode (macOS) or Visual Studio with the C++ desktop workload (Windows).
 
 ```bash
-git clone https://github.com/mekartikshah/aws_s3_scout.git
-cd aws_s3_scout
+git clone https://github.com/mekartikshah/hoistbay.git
+cd hoistbay
 flutter pub get
 
 # Run in debug
@@ -95,7 +97,11 @@ Distributed under the MIT License. See [LICENSE](LICENSE).
 
 ## 💖 Support
 
-If S3 Scout saves you time, please ⭐ the repo and share it with a teammate who lives in the AWS console.
+If Hoistbay saves you time, please ⭐ the repo and share it with a teammate who lives in the AWS console. You can also [buy me a coffee](https://buymeacoffee.com/kartikshah).
+
+## ⚖️ Trademarks
+
+Hoistbay is an independent open-source project and is not affiliated with, sponsored or endorsed by Amazon Web Services. Amazon S3, Amazon CloudFront and AWS are trademarks of Amazon.com, Inc. or its affiliates.
 
 ---
 

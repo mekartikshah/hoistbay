@@ -82,7 +82,7 @@ class CloudFrontService {
         distributionId: distributionId,
         invalidationBatch: InvalidationBatch(
           // Must be unique per request; CloudFront uses it to dedupe retries.
-          callerReference: 's3scout-${DateTime.now().microsecondsSinceEpoch}',
+          callerReference: 'hoistbay-${DateTime.now().microsecondsSinceEpoch}',
           paths: Paths(quantity: paths.length, items: paths),
         ),
       );

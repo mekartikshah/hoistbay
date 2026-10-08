@@ -313,14 +313,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           const AppCardHeader(
             title: 'About',
-            subtitle: 'S3 Scout information',
+            subtitle: 'Hoistbay information',
           ),
           const SizedBox(height: AppSpacing.lg),
-          _buildInfoRow('Version', '1.0.2'),
-          _buildInfoRow('App', 'S3 Scout – Free S3 Browser'),
+          _buildInfoRow('Version', '1.1.1'),
+          _buildInfoRow('App', 'Hoistbay — for Amazon S3 & CloudFront'),
           const SizedBox(height: AppSpacing.lg),
           const Text(
-            'A beautiful, modern, and open-source AWS S3 browser for desktop. Manage your buckets and CloudFront distributions with ease.',
+            'A free, open-source desktop app for Amazon S3 and CloudFront. Hoistbay is an independent project and is not affiliated with or endorsed by Amazon Web Services. Amazon S3, Amazon CloudFront and AWS are trademarks of Amazon.com, Inc. or its affiliates.',
             style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.5),
           ),
           const SizedBox(height: AppSpacing.md),

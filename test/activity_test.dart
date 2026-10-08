@@ -1,11 +1,11 @@
 import 'package:aws_cloudfront_api/cloudfront-2020-05-31.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:s3_scout/models/task_history.dart';
-import 'package:s3_scout/providers/app_state.dart';
-import 'package:s3_scout/screens/activity_screen.dart';
-import 'package:s3_scout/services/cloudfront_service.dart';
-import 'package:s3_scout/services/task_service.dart';
+import 'package:hoistbay/models/task_history.dart';
+import 'package:hoistbay/providers/app_state.dart';
+import 'package:hoistbay/screens/activity_screen.dart';
+import 'package:hoistbay/services/cloudfront_service.dart';
+import 'package:hoistbay/services/task_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// CloudFront stand-in: invalidations report the queued statuses in order.

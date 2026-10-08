@@ -31,13 +31,13 @@ jobs:
       - name: Package macOS release
         run: |
           # Fixed asset name so the website can link to
-          # /releases/latest/download/S3-Scout-macOS.zip
-          OUTPUT_NAME="S3-Scout-macOS"
+          # /releases/latest/download/Hoistbay-macOS.zip
+          OUTPUT_NAME="Hoistbay-macOS"
           APP_PATH=$(ls -d build/macos/Build/Products/Release/*.app | head -n 1)
-          # Rename the bundle to a plain "S3 Scout.app" for users, and use ditto so
+          # Rename the bundle to a plain "Hoistbay.app" for users, and use ditto so
           # framework symlinks inside the bundle are preserved.
-          cp -R "${APP_PATH}" "S3 Scout.app"
-          ditto -c -k --sequesterRsrc --keepParent "S3 Scout.app" "${OUTPUT_NAME}.zip"
+          cp -R "${APP_PATH}" "Hoistbay.app"
+          ditto -c -k --sequesterRsrc --keepParent "Hoistbay.app" "${OUTPUT_NAME}.zip"
           echo "OUTPUT_NAME=${OUTPUT_NAME}" >> $GITHUB_ENV
 
       - name: Upload artifact
@@ -74,8 +74,8 @@ jobs:
       - name: Package Windows release
         run: |
           # Fixed asset name so the website can link to
-          # /releases/latest/download/S3-Scout-Windows.zip
-          $outputName = "S3-Scout-Windows"
+          # /releases/latest/download/Hoistbay-Windows.zip
+          $outputName = "Hoistbay-Windows"
           Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath "${outputName}.zip"
           echo "OUTPUT_NAME=${outputName}" >> $env:GITHUB_ENV
 

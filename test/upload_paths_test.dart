@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:s3_scout/utils/upload_paths.dart';
-import 'package:s3_scout/utils/upload_runner.dart';
+import 'package:hoistbay/utils/upload_paths.dart';
+import 'package:hoistbay/utils/upload_runner.dart';
 
 void main() {
   late Directory root;

@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-10-08
+
+### Changed
+- Renamed the app from S3 Scout to **Hoistbay**, with a new app icon
+- Release builds are now `Hoistbay-macOS.zip` and `Hoistbay-Windows.zip`; the Windows app is `hoistbay.exe`
+- New macOS bundle identifier (`com.kshah.hoistbay`): profiles saved with earlier builds need to be added again
+
 ## [1.1.0] - 2026-10-08
 
 ### Added
@@ -29,7 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2025-01-26
 
 ### Added
-- Initial release of AWS S3 Browser
+- Initial release (as AWS S3 Browser)
 - Multi-profile support for managing multiple AWS accounts
 - Secure credential storage using platform-specific encryption
 - Browse and navigate S3 buckets and objects

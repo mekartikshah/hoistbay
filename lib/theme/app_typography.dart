@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'app_colors.dart';
 
-/// Typography scale for S3 Scout using system fonts
+/// Typography scale for Hoistbay using system fonts
 class AppTypography {
   AppTypography._();
 

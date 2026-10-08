@@ -471,10 +471,10 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.kshah.s3scout.RunnerTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kshah.hoistbay.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/S3 Scout – Free S3 Browser.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/S3 Scout – Free S3 Browser";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Hoistbay.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Hoistbay";
 			};
 			name = Debug;
 		};
@@ -486,10 +486,10 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.kshah.s3scout.RunnerTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kshah.hoistbay.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/S3 Scout – Free S3 Browser.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/S3 Scout – Free S3 Browser";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Hoistbay.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Hoistbay";
 			};
 			name = Release;
 		};
@@ -501,10 +501,10 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.kshah.s3scout.RunnerTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kshah.hoistbay.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/S3 Scout – Free S3 Browser.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/S3 Scout – Free S3 Browser";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Hoistbay.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Hoistbay";
 			};
 			name = Profile;
 		};
