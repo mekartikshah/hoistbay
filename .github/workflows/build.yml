@@ -1,8 +1,10 @@
 name: Build Desktop Releases
 
+# PRs build and test every change before it merges, and a v* tag builds the
+# release, so pushes to main don't build again. Run it by hand for an ad-hoc
+# build of any branch.
 on:
   push:
-    branches: [main]
     tags:
       - 'v*'
   pull_request:
@@ -11,6 +13,11 @@ on:
 
 permissions:
   contents: write
+
+# A new push to a PR cancels that PR's older run; release runs never cancel.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build-macos:
@@ -48,11 +55,28 @@ jobs:
           name: ${{ env.OUTPUT_NAME }}
           path: ${{ env.OUTPUT_NAME }}.zip
 
+      # The release description is the CHANGELOG section for this version, so
+      # a tag without that section fails instead of publishing an empty release.
+      - name: Extract release notes
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v heading="## [${VERSION}]" '
+            /^## \[/ { if (found) exit; if (index($0, heading) == 1) { found = 1; next } }
+            found
+          ' CHANGELOG.md > release_notes.md
+          if ! grep -q '[^[:space:]]' release_notes.md; then
+            echo "::error::CHANGELOG.md has no '## [${VERSION}]' section"
+            exit 1
+          fi
+
       - name: Attach to GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ env.OUTPUT_NAME }}.zip
+          body_path: release_notes.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -95,10 +119,27 @@ jobs:
           name: ${{ env.OUTPUT_NAME }}
           path: ${{ env.OUTPUT_NAME }}.zip
 
+      # The release description is the CHANGELOG section for this version, so
+      # a tag without that section fails instead of publishing an empty release.
+      - name: Extract release notes
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v heading="## [${VERSION}]" '
+            /^## \[/ { if (found) exit; if (index($0, heading) == 1) { found = 1; next } }
+            found
+          ' CHANGELOG.md > release_notes.md
+          if ! grep -q '[^[:space:]]' release_notes.md; then
+            echo "::error::CHANGELOG.md has no '## [${VERSION}]' section"
+            exit 1
+          fi
+
       - name: Attach to GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ env.OUTPUT_NAME }}.zip
+          body_path: release_notes.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
