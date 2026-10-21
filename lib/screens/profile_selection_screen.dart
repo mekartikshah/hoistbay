@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/aws_profile.dart';
 import '../providers/app_state.dart';
+import '../services/credential_store.dart';
 import '../services/profile_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
@@ -21,6 +22,8 @@ class ProfileSelectionScreen extends StatefulWidget {
 class _ProfileSelectionScreenState extends State<ProfileSelectionScreen> {
   List<AwsProfile> _profiles = [];
   bool _isLoading = true;
+  // Stays on screen until the user closes it or a retry succeeds.
+  KeychainException? _keychainError;
 
   @override
   void initState() {
@@ -30,12 +33,18 @@ class _ProfileSelectionScreenState extends State<ProfileSelectionScreen> {
 
   Future<void> _loadProfiles() async {
     setState(() => _isLoading = true);
-    final profiles = await ProfileService.loadProfiles();
-    if (mounted) {
-      setState(() {
-        _profiles = profiles;
-        _isLoading = false;
-      });
+    try {
+      final profiles = await ProfileService.loadProfiles();
+      if (mounted) {
+        setState(() {
+          _profiles = profiles;
+          _keychainError = null;
+        });
+      }
+    } on KeychainException catch (e) {
+      if (mounted) setState(() => _keychainError = e);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -53,6 +62,8 @@ class _ProfileSelectionScreenState extends State<ProfileSelectionScreen> {
           Navigator.of(context).popUntil((route) => route.isFirst);
         }
       }
+    } on KeychainException catch (e) {
+      if (mounted) setState(() => _keychainError = e);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -123,7 +134,13 @@ class _ProfileSelectionScreenState extends State<ProfileSelectionScreen> {
                 Expanded(
                   child: _isLoading
                       ? const Center(child: AppCircularProgress())
-                      : _profiles.isEmpty
+                      : _profiles.isEmpty && _keychainError != null
+                          ? const AppEmptyState(
+                              icon: Icons.lock_outline,
+                              title: 'Profiles unavailable',
+                              subtitle: 'Hoistbay could not read your saved keys',
+                            )
+                          : _profiles.isEmpty
                           ? const AppEmptyState(
                               icon: Icons.person_off_outlined,
                               title: 'No profiles yet',
@@ -177,7 +194,16 @@ class _ProfileSelectionScreenState extends State<ProfileSelectionScreen> {
           Expanded(
             child: Container(
               padding: const EdgeInsets.all(AppSpacing.xxl),
-              child: Center(
+              child: Column(
+                children: [
+                  if (_keychainError != null)
+                    _KeychainErrorBanner(
+                      error: _keychainError!,
+                      onRetry: _loadProfiles,
+                      onClose: () => setState(() => _keychainError = null),
+                    ),
+                  Expanded(
+                    child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -213,7 +239,68 @@ class _ProfileSelectionScreenState extends State<ProfileSelectionScreen> {
                     ],
                   ],
                 ),
+                    ),
+                  ),
+                ],
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _KeychainErrorBanner extends StatelessWidget {
+  final KeychainException error;
+  final VoidCallback onRetry;
+  final VoidCallback onClose;
+
+  const _KeychainErrorBanner({
+    required this.error,
+    required this.onRetry,
+    required this.onClose,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 640),
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.errorLight,
+        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.lock_outline, color: AppColors.error, size: 22),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(error.title, style: AppTypography.bodyMedium),
+                const SizedBox(height: 4),
+                SelectableText(error.message, style: AppTypography.body),
+                const SizedBox(height: AppSpacing.md),
+                Row(
+                  children: [
+                    AppButton(
+                      label: 'Try Again',
+                      variant: AppButtonVariant.primary,
+                      onPressed: onRetry,
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    AppButton(
+                      label: 'Close',
+                      variant: AppButtonVariant.secondary,
+                      onPressed: onClose,
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ],

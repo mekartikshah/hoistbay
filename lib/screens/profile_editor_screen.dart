@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import '../models/aws_profile.dart';
 import '../models/aws_credentials.dart';
+import '../services/credential_store.dart';
 import '../services/profile_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_typography.dart';
 import '../components/app_button.dart';
+import '../components/app_dialog.dart';
 import '../components/app_card.dart';
 import '../components/app_input.dart';
 
@@ -100,6 +102,24 @@ class _ProfileEditorScreenState extends State<ProfileEditorScreen> {
           SnackBar(
             content: Text('Profile "${profile.name}" saved successfully'),
             backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } on KeychainException catch (e) {
+      if (mounted) {
+        // A dialog, not a snackbar: it stays until the user closes it.
+        await showDialog<void>(
+          context: context,
+          builder: (context) => AppDialog(
+            title: e.title,
+            content: SelectableText(e.message, style: AppTypography.body),
+            actions: [
+              AppButton(
+                label: 'Close',
+                variant: AppButtonVariant.primary,
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
           ),
         );
       }

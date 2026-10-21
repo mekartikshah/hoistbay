@@ -5,6 +5,7 @@ import '../models/aws_credentials.dart';
 import '../models/aws_profile.dart';
 import '../models/s3_object.dart';
 import '../services/aws_service.dart';
+import '../services/credential_store.dart';
 import '../services/profile_service.dart';
 import '../models/default_http_header.dart';
 import '../services/default_headers_service.dart';
@@ -123,6 +124,8 @@ class AppState extends ChangeNotifier {
         _currentProfile = currentProfile;
         await login(currentProfile.credentials);
       }
+    } on KeychainException {
+      // The profile screen shows this one, with a way to try again.
     } catch (e) {
       _setError('Failed to initialize: $e');
     } finally {
@@ -320,6 +323,11 @@ class AppState extends ChangeNotifier {
     _setError(null);
 
     try {
+      // Happens if the secure store lost the keys, e.g. Windows deletes a
+      // DPAPI file it can no longer decrypt after a profile move.
+      if (credentials.accessKeyId.isEmpty || credentials.secretAccessKey.isEmpty) {
+        throw Exception('The saved keys for this profile are missing. Edit the profile and enter them again.');
+      }
       await _awsService.initialize(credentials);
       _cloudFrontService.initialize(credentials);
       _credentials = credentials;

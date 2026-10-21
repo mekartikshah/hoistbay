@@ -12,7 +12,7 @@ Your keys stay in your OS keychain, and the app talks to nobody but AWS.
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-[Download](#-download) • [Features](#-features) • [Security](#-security) • [Build from source](#-build-from-source)
+[Website](https://hoistbay.app) • [Download](#-download) • [Features](#-features) • [Security](#-security) • [Build from source](#-build-from-source)
 
 </div>
 
