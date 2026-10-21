@@ -5,11 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.2] - 2026-10-21
 
 ### Security
-- AWS keys are now stored in the macOS Keychain instead of the app's preferences file. Keys saved by earlier versions are moved into the Keychain and removed from the preferences file the first time you open your profiles.
-- Removed a fallback that could save credentials in plaintext when the Keychain was unavailable; Keychain errors are now shown instead
+- AWS keys are now stored in the macOS Keychain, or encrypted with your Windows account (DPAPI) on Windows, instead of in plain text in the app's preferences file
+- Keys saved by earlier versions are moved into secure storage and removed from the preferences file the first time you open your profiles
+- Removed a fallback that could save credentials in plain text when the Keychain was unavailable
+
+### Changed
+- Keychain errors now explain what happened and stay on screen until you close them, with a Try Again button
+- A profile whose saved keys are missing now says so when you connect, instead of failing with an AWS error
+
+### Upgrade notes
+- **macOS:** after updating, macOS asks once for Hoistbay to access its Keychain item. Click **Always Allow**. Because builds aren't signed with a developer ID, this happens once after each update.
+- Older backups of the preferences file may still contain your keys in plain text; consider rotating your AWS keys.
 
 ## [1.1.1] - 2026-10-08
 
