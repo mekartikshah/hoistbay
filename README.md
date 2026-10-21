@@ -4,6 +4,8 @@
 
 <img src="docs/brand/hoistbay-icon-1536.png" alt="Hoistbay" width="96">
 
+<a href="https://www.producthunt.com/products/hoistbay?embed=true&amp;utm_source=badge-top-post-badge&amp;utm_medium=badge&amp;utm_campaign=badge-hoistbay" target="_blank" rel="noopener noreferrer"><img alt="Hoistbay - Open-source desktop app for Amazon S3 and CloudFront | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/top-post-badge.svg?post_id=1274705&amp;theme=light&amp;period=daily&amp;t=1792584338858"></a>
+
 **Hoistbay — a free, open-source desktop app for Amazon S3 and CloudFront.**
 Your keys stay in your OS keychain, and the app talks to nobody but AWS.
 
