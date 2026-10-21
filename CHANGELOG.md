@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security
+- AWS keys are now stored in the macOS Keychain instead of the app's preferences file. Keys saved by earlier versions are moved into the Keychain and removed from the preferences file the first time you open your profiles.
+- Removed a fallback that could save credentials in plaintext when the Keychain was unavailable; Keychain errors are now shown instead
+
 ## [1.1.1] - 2026-10-08
 
 ### Changed

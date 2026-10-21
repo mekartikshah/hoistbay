@@ -5,6 +5,8 @@ on:
     branches: [main]
     tags:
       - 'v*'
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -67,6 +69,14 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Run unit tests
+        run: flutter test
+
+      # Exercises profile storage against the real DPAPI store and preferences
+      # file, which the unit tests only mock.
+      - name: Run Windows integration tests
+        run: flutter test integration_test -d windows
 
       - name: Build Windows release
         run: flutter build windows --release
